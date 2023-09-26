@@ -14,6 +14,9 @@ struct ChunkSection {
     /// section contains a 16 x 16 x 16 cube of blocks = 4096 blocks
     /// If the section is empty, this is skipped
     block_count: u16,
+    /// The data for all the blocks in the chunk
+    /// The representation for this may be different based on the number of
+    /// non-empty blocks
     block_states: [BlockID; 4096],
 }
 

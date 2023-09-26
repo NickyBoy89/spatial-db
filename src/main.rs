@@ -2,6 +2,9 @@ mod storage;
 mod storage_server;
 use clap::Parser;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
