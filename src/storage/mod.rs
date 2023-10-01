@@ -1,2 +1,2 @@
-mod interface;
-mod world;
+pub mod world;
+

@@ -1,3 +1,4 @@
+mod simple_server;
 mod storage;
 mod storage_server;
 use clap::Parser;
@@ -21,5 +22,6 @@ fn main() {
         println!("Proxy was enabled");
         storage_server::main();
     }
+
     println!("Hello, world!");
 }
