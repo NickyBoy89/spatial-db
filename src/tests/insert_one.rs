@@ -26,7 +26,7 @@ mod tests {
         assert!(range.within_range(&test4));
         assert!(range.within_range(&test5));
 
-        let test6 = BlockPos::new(-1, -1, 0);
+        let test6 = BlockPos::new(-1, 0, 0);
 
         assert!(!range.within_range(&test6));
     }
@@ -35,10 +35,10 @@ mod tests {
     fn test_simple_insert() {
         let mut server = SimpleServer::new();
 
-        server.change_block(BlockID::Generic, BlockPos::new(0, 0, 0));
+        server.change_block(BlockID::Generic, &BlockPos::new(0, 0, 0));
 
         assert_eq!(
-            server.read_block_at(BlockPos::new(0, 0, 0)),
+            server.read_block_at(&BlockPos::new(0, 0, 0)),
             BlockID::Generic
         );
     }

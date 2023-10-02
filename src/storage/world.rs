@@ -3,7 +3,7 @@ use std::cmp::{max, min};
 const SECTIONS_PER_CHUNK: usize = 16;
 const SLICE_SIZE: usize = 16 * 16;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ChunkPos {
     pub x: isize,
     pub z: isize,
@@ -18,18 +18,27 @@ impl From<&BlockPos> for ChunkPos {
     }
 }
 
-impl ChunkPos {
-    pub fn same_location(&self, other: &ChunkPos) -> bool {
-        self.x == other.x && self.z == other.z
-    }
-}
-
+#[derive(Debug)]
 pub struct ChunkData {
     pub pos: ChunkPos,
     pub sections: [ChunkSection; SECTIONS_PER_CHUNK],
 }
 
+impl ChunkData {
+    pub fn new(pos: &ChunkPos) -> Self {
+        ChunkData {
+            pos: pos.clone(),
+            sections: [ChunkSection::new(); SECTIONS_PER_CHUNK],
+        }
+    }
+
+    pub fn section_for(&self, block_pos: &BlockPos) -> &ChunkSection {
+        &self.sections[block_pos.y % 16]
+    }
+}
+
 // https://wiki.vg/Chunk_Format
+#[derive(Debug, Clone, Copy)]
 pub struct ChunkSection {
     /// The number of non-empty blocks in the section. If completely full, the
     /// section contains a 16 x 16 x 16 cube of blocks = 4096 blocks
@@ -42,6 +51,13 @@ pub struct ChunkSection {
 }
 
 impl ChunkSection {
+    pub fn new() -> Self {
+        ChunkSection {
+            block_count: 0,
+            block_states: [BlockID::Empty; 16 * 16 * 16],
+        }
+    }
+
     pub fn index_of_block(&self, pos: &BlockPos) -> usize {
         let base_x = pos.x.rem_euclid(16) as usize;
         let base_y = pos.y.rem_euclid(16) as usize;
@@ -74,6 +90,12 @@ impl ChunkSection {
 
         self.block_states[index] = id.clone();
     }
+
+    pub fn get_block_at_index(&self, pos: &BlockPos) -> &BlockID {
+        let array_index = self.index_of_block(pos);
+
+        &self.block_states[array_index]
+    }
 }
 
 /// `BlockPos` represents the location of a block in world space
@@ -91,6 +113,7 @@ impl BlockPos {
 }
 
 /// BlockRange represents a range of blocks that have been updated
+#[derive(Debug)]
 pub struct BlockRange {
     pub start: BlockPos,
     pub end: BlockPos,
@@ -131,7 +154,7 @@ impl BlockRange {
 
 /// BlockID represents the type of block stored
 #[repr(u8)]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum BlockID {
     Empty,
     Generic,
