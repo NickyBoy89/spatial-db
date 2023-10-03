@@ -27,6 +27,10 @@ impl SimpleServer {
         }
     }
 
+    pub fn num_chunks(&self) -> usize {
+        self.chunks.len()
+    }
+
     fn chunk_at_block_mut(&mut self, block_pos: &BlockPos) -> Option<&mut ChunkData> {
         // Find what chunk the block is in
         let chunk_pos = ChunkPos::from(block_pos);
@@ -71,6 +75,8 @@ impl StorageServer for SimpleServer {
         }
 
         let chunk = chunk.expect("Could not find chunk");
+
+        println!("Chunk for {:?} is at {:?}", world_position, chunk.pos);
 
         // Find the section that the block is located in
         let current_section = &mut chunk.sections[world_position.y / 16];

@@ -1,4 +1,8 @@
-use std::cmp::{max, min};
+use core::fmt;
+use std::{
+    cmp::{max, min},
+    fmt::Debug,
+};
 
 const SECTIONS_PER_CHUNK: usize = 16;
 const SLICE_SIZE: usize = 16 * 16;
@@ -12,8 +16,8 @@ pub struct ChunkPos {
 impl From<&BlockPos> for ChunkPos {
     fn from(value: &BlockPos) -> Self {
         ChunkPos {
-            x: value.x / 16,
-            z: value.z / 16,
+            x: value.x.rem_euclid(16),
+            z: value.z.rem_euclid(16),
         }
     }
 }
@@ -38,7 +42,7 @@ impl ChunkData {
 }
 
 // https://wiki.vg/Chunk_Format
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct ChunkSection {
     /// The number of non-empty blocks in the section. If completely full, the
     /// section contains a 16 x 16 x 16 cube of blocks = 4096 blocks
@@ -48,6 +52,16 @@ pub struct ChunkSection {
     /// The representation for this may be different based on the number of
     /// non-empty blocks
     block_states: [BlockID; 16 * 16 * 16],
+}
+
+impl Debug for ChunkSection {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "ChunkSection {{ blocks: {}, states: ", self.block_count)?;
+        if self.block_count > 0 {
+            write!(f, "{:?}", self.block_states)?;
+        }
+        write!(f, " }}")
+    }
 }
 
 impl ChunkSection {
