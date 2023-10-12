@@ -1,12 +1,6 @@
 use crate::storage::world::{BlockID, BlockPos, BlockRange, ChunkData, ChunkPos};
 use crate::storage_server::StorageServer;
 
-#[derive(Debug, Clone)]
-struct SingleBlock {
-    id: BlockID,
-    position: BlockPos,
-}
-
 #[derive(Debug)]
 struct MultipleBlocks {
     id: BlockID,
@@ -76,10 +70,8 @@ impl StorageServer for SimpleServer {
 
         let chunk = chunk.expect("Could not find chunk");
 
-        println!("Chunk for {:?} is at {:?}", world_position, chunk.pos);
-
         // Find the section that the block is located in
-        let current_section = &mut chunk.sections[world_position.y / 16];
+        let current_section = &mut chunk.sections[world_position.y % 16];
         // Find the index that the block is at, and update its state
         let chunk_array_index = current_section.index_of_block(&world_position);
         current_section.update_block_at_index(&target_state, chunk_array_index);

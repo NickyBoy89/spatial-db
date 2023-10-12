@@ -16,8 +16,8 @@ pub struct ChunkPos {
 impl From<&BlockPos> for ChunkPos {
     fn from(value: &BlockPos) -> Self {
         ChunkPos {
-            x: value.x.rem_euclid(16),
-            z: value.z.rem_euclid(16),
+            x: value.x / 16,
+            z: value.z / 16,
         }
     }
 }

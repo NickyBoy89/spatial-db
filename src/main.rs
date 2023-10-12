@@ -1,3 +1,5 @@
+#![feature(test)]
+
 mod simple_server;
 mod storage;
 mod storage_server;
