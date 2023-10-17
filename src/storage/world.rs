@@ -1,13 +1,16 @@
 use core::fmt;
+use serde::ser;
+use serde::Serialize;
 use std::{
     cmp::{max, min},
     fmt::Debug,
+    fs::File,
 };
 
 const SECTIONS_PER_CHUNK: usize = 16;
 const SLICE_SIZE: usize = 16 * 16;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ChunkPos {
     pub x: isize,
     pub z: isize,
@@ -22,7 +25,13 @@ impl From<&BlockPos> for ChunkPos {
     }
 }
 
-#[derive(Debug)]
+impl ChunkPos {
+    pub fn storage_file_name(&self) -> String {
+        format!("{}.{}.chunk", self.x, self.z)
+    }
+}
+
+#[derive(Debug, Serialize)]
 pub struct ChunkData {
     pub pos: ChunkPos,
     pub sections: [ChunkSection; SECTIONS_PER_CHUNK],
@@ -38,6 +47,14 @@ impl ChunkData {
 
     pub fn section_for(&self, block_pos: &BlockPos) -> &ChunkSection {
         &self.sections[block_pos.y % 16]
+    }
+
+    pub fn write_to_file(&self, output_file: &mut File) {
+        let serialized = serde_json::to_string(self).unwrap();
+    }
+
+    pub fn read_from_file(chunk_file: &File) -> Self {
+        unimplemented!()
     }
 }
 
@@ -168,7 +185,7 @@ impl BlockRange {
 
 /// BlockID represents the type of block stored
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub enum BlockID {
     Empty,
     Generic,

@@ -10,14 +10,14 @@ struct MultipleBlocks {
 #[derive(Debug)]
 pub struct SimpleServer {
     chunks: Vec<ChunkData>,
-    block_ranges: Vec<MultipleBlocks>,
+    // block_ranges: Vec<MultipleBlocks>,
 }
 
 impl SimpleServer {
     pub fn new() -> Self {
         SimpleServer {
             chunks: Vec::new(),
-            block_ranges: Vec::new(),
+            // block_ranges: Vec::new(),
         }
     }
 
@@ -78,13 +78,14 @@ impl StorageServer for SimpleServer {
     }
 
     fn change_block_range(&mut self, target_stage: BlockID, start: &BlockPos, end: &BlockPos) {
-        self.block_ranges.push(MultipleBlocks {
-            id: target_stage,
-            range: BlockRange {
-                start: start.clone(),
-                end: end.clone(),
-            },
-        })
+        unimplemented!()
+        // self.block_ranges.push(MultipleBlocks {
+        //     id: target_stage,
+        //     range: BlockRange {
+        //         start: start.clone(),
+        //         end: end.clone(),
+        //     },
+        // })
     }
 
     fn read_block_at(&self, pos: &BlockPos) -> BlockID {
@@ -96,11 +97,11 @@ impl StorageServer for SimpleServer {
             return chunk_section.get_block_at_index(pos).clone();
         }
 
-        for blocks in self.block_ranges.iter() {
-            if blocks.range.within_range(&pos) {
-                return blocks.id.clone();
-            }
-        }
+        // for blocks in self.block_ranges.iter() {
+        //     if blocks.range.within_range(&pos) {
+        //         return blocks.id.clone();
+        //     }
+        // }
 
         BlockID::Empty
     }
