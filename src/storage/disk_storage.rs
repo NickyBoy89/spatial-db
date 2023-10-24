@@ -61,6 +61,7 @@ impl ChunkStorageCache {
 
         &self.cached_chunk_files[last_used_index]
     }
+
     /// `fetch_chunk_by_pos` takes in the position of a chunk, and returns the
     /// data of the chunk from disk
     ///

@@ -1,5 +1,6 @@
 use core::fmt;
 use serde::ser;
+use serde::ser::{SerializeSeq, SerializeStruct, Serializer};
 use serde::Serialize;
 use std::{
     cmp::{max, min},
@@ -31,10 +32,24 @@ impl ChunkPos {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub struct ChunkData {
     pub pos: ChunkPos,
     pub sections: [ChunkSection; SECTIONS_PER_CHUNK],
+}
+
+impl Serialize for ChunkData {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.sections.len()))?;
+
+        for section in self.sections {
+            seq.serialize_element(&section)?;
+        }
+        seq.end()
+    }
 }
 
 impl ChunkData {
@@ -59,7 +74,7 @@ impl ChunkData {
 }
 
 // https://wiki.vg/Chunk_Format
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize)]
 pub struct ChunkSection {
     /// The number of non-empty blocks in the section. If completely full, the
     /// section contains a 16 x 16 x 16 cube of blocks = 4096 blocks
@@ -68,6 +83,7 @@ pub struct ChunkSection {
     /// The data for all the blocks in the chunk
     /// The representation for this may be different based on the number of
     /// non-empty blocks
+    #[serde(with = "serde_arrays")]
     block_states: [BlockID; 16 * 16 * 16],
 }
 
