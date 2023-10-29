@@ -7,6 +7,10 @@ import (
 	"git.nicholasnovak.io/nnovak/spatial-db/world"
 )
 
+var (
+	ChunkFileDirectory = "./persistence"
+)
+
 func ReadChunkFromFile(chunkFile *os.File) (world.ChunkData, error) {
 	var chunkData world.ChunkData
 

@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
+	"os"
 	"testing"
 	"time"
 
@@ -9,8 +11,26 @@ import (
 	"git.nicholasnovak.io/nnovak/spatial-db/world"
 )
 
+func setupStorageDir() string {
+	dir, err := os.MkdirTemp("", "spatial-db-persistence")
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("Temporary directory is at %s\n", dir)
+
+	storage.ChunkFileDirectory = dir
+
+	return dir
+}
+
 func BenchmarkInsertSomePoints(b *testing.B) {
 	var server storage.SimpleServer
+
+	stdDev := 65536
+
+	storage.ChunkFileDirectory = setupStorageDir()
+	defer os.RemoveAll(storage.ChunkFileDirectory)
 
 	points := make([]world.BlockPos, b.N)
 
@@ -18,9 +38,9 @@ func BenchmarkInsertSomePoints(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		points[i] = world.BlockPos{
-			X: int(r.NormFloat64()),
-			Y: uint(r.NormFloat64()),
-			Z: int(r.NormFloat64()),
+			X: int(r.NormFloat64() * float64(stdDev)),
+			Y: uint(r.NormFloat64() * float64(stdDev)),
+			Z: int(r.NormFloat64() * float64(stdDev)),
 		}
 	}
 
@@ -31,4 +51,6 @@ func BenchmarkInsertSomePoints(b *testing.B) {
 			b.Error(err)
 		}
 	}
+
+	fmt.Println(os.ReadDir(storage.ChunkFileDirectory))
 }

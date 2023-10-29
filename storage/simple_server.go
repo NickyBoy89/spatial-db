@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io/fs"
 	"os"
+	"path/filepath"
 
 	"git.nicholasnovak.io/nnovak/spatial-db/world"
 )
@@ -17,7 +18,7 @@ type SimpleServer struct {
 // Filesystem operations
 
 func (s *SimpleServer) FetchChunk(pos world.ChunkPos) (world.ChunkData, error) {
-	chunkFileName := pos.ToFileName()
+	chunkFileName := filepath.Join(ChunkFileDirectory, pos.ToFileName())
 
 	var chunkData world.ChunkData
 
@@ -32,6 +33,10 @@ func (s *SimpleServer) FetchChunk(pos world.ChunkPos) (world.ChunkData, error) {
 
 			// Initilize the file with some blank data
 			if err := json.NewEncoder(chunkFile).Encode(chunkData); err != nil {
+				return chunkData, err
+			}
+
+			if _, err := chunkFile.Seek(0, 0); err != nil {
 				return chunkData, err
 			}
 		} else {
