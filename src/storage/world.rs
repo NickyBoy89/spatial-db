@@ -1,17 +1,21 @@
 use core::fmt;
 use serde::ser;
 use serde::ser::{SerializeSeq, SerializeStruct, Serializer};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::{
     cmp::{max, min},
     fmt::Debug,
     fs::File,
 };
 
+use serde_big_array::BigArray;
+
 const SECTIONS_PER_CHUNK: usize = 16;
 const SLICE_SIZE: usize = 16 * 16;
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+const DATABASE_FILE_LOCATION: &str = "./persistence";
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ChunkPos {
     pub x: isize,
     pub z: isize,
@@ -28,29 +32,30 @@ impl From<&BlockPos> for ChunkPos {
 
 impl ChunkPos {
     pub fn storage_file_name(&self) -> String {
-        format!("{}.{}.chunk", self.x, self.z)
+        format!("{DATABASE_FILE_LOCATION}/{}.{}.chunk", self.x, self.z)
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ChunkData {
     pub pos: ChunkPos,
+    #[serde(with = "serde_arrays")]
     pub sections: [ChunkSection; SECTIONS_PER_CHUNK],
 }
 
-impl Serialize for ChunkData {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut seq = serializer.serialize_seq(Some(self.sections.len()))?;
-
-        for section in self.sections {
-            seq.serialize_element(&section)?;
-        }
-        seq.end()
-    }
-}
+// impl Serialize for ChunkData {
+//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+//     where
+//         S: serde::Serializer,
+//     {
+//         let mut seq = serializer.serialize_seq(Some(self.sections.len()))?;
+//
+//         for section in self.sections {
+//             seq.serialize_element(&section)?;
+//         }
+//         seq.end()
+//     }
+// }
 
 impl ChunkData {
     pub fn new(pos: &ChunkPos) -> Self {
@@ -74,7 +79,7 @@ impl ChunkData {
 }
 
 // https://wiki.vg/Chunk_Format
-#[derive(Clone, Copy, Serialize)]
+#[derive(Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct ChunkSection {
     /// The number of non-empty blocks in the section. If completely full, the
     /// section contains a 16 x 16 x 16 cube of blocks = 4096 blocks
@@ -87,15 +92,15 @@ pub struct ChunkSection {
     block_states: [BlockID; 16 * 16 * 16],
 }
 
-impl Debug for ChunkSection {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "ChunkSection {{ blocks: {}, states: ", self.block_count)?;
-        if self.block_count > 0 {
-            write!(f, "{:?}", self.block_states)?;
-        }
-        write!(f, " }}")
-    }
-}
+// impl Debug for ChunkSection {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         write!(f, "ChunkSection {{ blocks: {}, states: ", self.block_count)?;
+//         if self.block_count > 0 {
+//             write!(f, "{:?}", self.block_states)?;
+//         }
+//         write!(f, " }}")
+//     }
+// }
 
 impl ChunkSection {
     pub fn new() -> Self {
@@ -201,7 +206,7 @@ impl BlockRange {
 
 /// BlockID represents the type of block stored
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum BlockID {
     Empty,
     Generic,

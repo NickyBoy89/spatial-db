@@ -9,7 +9,7 @@ pub trait StorageServer {
 
     /// `read_block_at` returns the id of the block at the location specified
     /// If no block is present, the returned id will be of the empty type
-    fn read_block_at(&self, pos: &BlockPos) -> BlockID;
+    fn read_block_at(&mut self, pos: &BlockPos) -> BlockID;
 }
 
 #[tokio::main]

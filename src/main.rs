@@ -1,5 +1,9 @@
 #![feature(test)]
 
+extern crate serde;
+#[macro_use]
+extern crate serde_big_array;
+
 mod simple_server;
 mod storage;
 mod storage_server;
