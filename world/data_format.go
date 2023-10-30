@@ -36,8 +36,12 @@ type ChunkPos struct {
 	Z int `json:"z"`
 }
 
-func (cp *ChunkPos) ToFileName() string {
+func (cp ChunkPos) ToFileName() string {
 	return fmt.Sprintf("p.%d.%d.chunk", cp.X, cp.Z)
+}
+
+func (cp ChunkPos) StringCoords() string {
+	return fmt.Sprintf("%d, %d", cp.X, cp.Z)
 }
 
 type ChunkSection struct {

@@ -1,65 +1,137 @@
 package visualization
 
 import (
-	"fmt"
+	"errors"
 	"strings"
 
+	"git.nicholasnovak.io/nnovak/spatial-db/storage"
+	"git.nicholasnovak.io/nnovak/spatial-db/world"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 )
 
+const (
+	chunkWidth  = 15
+	chunkHeight = 5
+
+	borderPadding = 2
+)
+
 var (
-	modelStyle = lipgloss.NewStyle().
-			Width(15).
-			Height(5).
-			Align(lipgloss.Center, lipgloss.Center).
-			BorderStyle(lipgloss.HiddenBorder())
-	focusedModelStyle = lipgloss.NewStyle().
-				Width(15).
-				Height(5).
+	missingChunkStyle = lipgloss.NewStyle().
+				Width(chunkWidth).
+				Height(chunkHeight).
+				Align(lipgloss.Center, lipgloss.Center).
+				BorderStyle(lipgloss.HiddenBorder()).
+				BorderForeground(lipgloss.Color("69"))
+	presentChunkStyle = lipgloss.NewStyle().
+				Width(chunkWidth).
+				Height(chunkHeight).
 				Align(lipgloss.Center, lipgloss.Center).
 				BorderStyle(lipgloss.NormalBorder()).
 				BorderForeground(lipgloss.Color("69"))
-	spinnerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("69"))
-	helpStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
+	selectedChunkStyle = lipgloss.NewStyle().
+				Width(chunkWidth).
+				Height(chunkHeight).
+				Align(lipgloss.Center, lipgloss.Center).
+				BorderStyle(lipgloss.DoubleBorder()).
+				BorderForeground(lipgloss.Color("202"))
+
+	loadedChunkCache = make(map[world.ChunkPos]bool)
 )
 
 type chunkViewerModel struct {
-	index int
+	chunkServer *storage.SimpleServer
+
+	visibleChunkRows int
+	visibleChunkCols int
+
+	currentPos world.ChunkPos
+}
+
+func (m *chunkViewerModel) updateShownChunks(newWidth, newHeight int) {
+	m.visibleChunkRows = newHeight / (chunkHeight + borderPadding)
+	m.visibleChunkCols = newWidth / (chunkWidth + borderPadding)
 }
 
 func (m chunkViewerModel) Init() tea.Cmd {
-	return nil
+	return tea.EnterAltScreen
 }
 
 func (m chunkViewerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c", "q":
+		case "ctrl+c", "q", "esc":
 			return m, tea.Quit
 		}
 		switch msg.Type {
 		case tea.KeyRight:
-			// pass
+			m.currentPos.X += 1
+		case tea.KeyLeft:
+			m.currentPos.X -= 1
+		case tea.KeyUp:
+			m.currentPos.Z -= 1
+		case tea.KeyDown:
+			m.currentPos.Z += 1
 		}
+	case tea.WindowSizeMsg:
+		m.updateShownChunks(msg.Width, msg.Height)
 	}
 	return m, nil
 }
 
 func (m chunkViewerModel) View() string {
 	var s strings.Builder
-	if m.index == 0 {
-		s.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, focusedModelStyle.Render(fmt.Sprintf("%4s", "No")), modelStyle.Render("NO")))
-	} else {
-		s.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render(fmt.Sprintf("%4s", "Yes")), focusedModelStyle.Render("YES")))
+
+	midRow := m.visibleChunkRows / 2
+	midCol := m.visibleChunkCols / 2
+
+	for rowIndex := 0; rowIndex < m.visibleChunkRows; rowIndex++ {
+		renderedRow := make([]string, m.visibleChunkCols)
+		for colIndex := 0; colIndex < m.visibleChunkCols; colIndex++ {
+			currentChunkPos := world.ChunkPos{
+				X: midCol - colIndex - m.currentPos.X,
+				Z: midRow - rowIndex - m.currentPos.Z,
+			}
+
+			var fetchChunkErr error
+			if isPresent, cached := loadedChunkCache[currentChunkPos]; cached {
+				if isPresent {
+					fetchChunkErr = nil
+				} else {
+					fetchChunkErr = storage.ChunkNotFoundError
+				}
+			} else {
+				_, fetchChunkErr = m.chunkServer.FetchChunk(currentChunkPos)
+				loadedChunkCache[currentChunkPos] = fetchChunkErr == nil
+			}
+
+			chunkDisplay := currentChunkPos.StringCoords()
+
+			if rowIndex == midRow && colIndex == midCol {
+				renderedRow[colIndex] = selectedChunkStyle.Render(chunkDisplay)
+			} else {
+				if fetchChunkErr == nil {
+					renderedRow[colIndex] = presentChunkStyle.Render(chunkDisplay)
+				} else if errors.Is(fetchChunkErr, storage.ChunkNotFoundError) {
+					renderedRow[colIndex] = missingChunkStyle.Render(chunkDisplay)
+				} else {
+					panic(fetchChunkErr)
+				}
+			}
+		}
+		s.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, renderedRow...) + "\n")
 	}
+
 	return s.String()
 }
 
-func initChunkViewer() chunkViewerModel {
+func initChunkViewer(chunkServer *storage.SimpleServer) chunkViewerModel {
 	var model chunkViewerModel
+
+	model.chunkServer = chunkServer
 
 	return model
 }
@@ -70,7 +142,13 @@ var VisualizeChunkCommand = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		prog := tea.NewProgram(initChunkViewer())
+		// Initialize the server in the specified directory
+		storage.ChunkFileDirectory = args[0]
+
+		// Create a new server to read from those files
+		var chunkServer storage.SimpleServer
+
+		prog := tea.NewProgram(initChunkViewer(&chunkServer), tea.WithAltScreen())
 
 		if _, err := prog.Run(); err != nil {
 			return err

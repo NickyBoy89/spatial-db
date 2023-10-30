@@ -12,12 +12,16 @@ import (
 
 const fileCacheSize = 8
 
+var (
+	ChunkNotFoundError = errors.New("chunk was not found in storage")
+)
+
 type SimpleServer struct {
 }
 
 // Filesystem operations
 
-func (s *SimpleServer) FetchChunk(pos world.ChunkPos) (world.ChunkData, error) {
+func (s *SimpleServer) FetchOrCreateChunk(pos world.ChunkPos) (world.ChunkData, error) {
 	chunkFileName := filepath.Join(ChunkFileDirectory, pos.ToFileName())
 
 	var chunkData world.ChunkData
@@ -43,6 +47,25 @@ func (s *SimpleServer) FetchChunk(pos world.ChunkPos) (world.ChunkData, error) {
 			return chunkData, err
 		}
 	}
+	defer chunkFile.Close()
+
+	return ReadChunkFromFile(chunkFile)
+}
+
+func (s *SimpleServer) FetchChunk(pos world.ChunkPos) (world.ChunkData, error) {
+	chunkFileName := filepath.Join(ChunkFileDirectory, pos.ToFileName())
+
+	var chunkData world.ChunkData
+
+	chunkFile, err := os.Open(chunkFileName)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return chunkData, ChunkNotFoundError
+		} else {
+			return chunkData, err
+		}
+	}
+	defer chunkFile.Close()
 
 	return ReadChunkFromFile(chunkFile)
 }
@@ -53,7 +76,7 @@ func (s *SimpleServer) ChangeBlock(
 	worldPosition world.BlockPos,
 	targetState world.BlockID,
 ) error {
-	chunk, err := s.FetchChunk(worldPosition.ToChunkPos())
+	chunk, err := s.FetchOrCreateChunk(worldPosition.ToChunkPos())
 	if err != nil {
 		return err
 	}
@@ -71,7 +94,7 @@ func (s *SimpleServer) ChangeBlockRange(
 }
 
 func (s *SimpleServer) ReadBlockAt(pos world.BlockPos) (world.BlockID, error) {
-	chunk, err := s.FetchChunk(pos.ToChunkPos())
+	chunk, err := s.FetchOrCreateChunk(pos.ToChunkPos())
 	if err != nil {
 		return world.Empty, err
 	}
@@ -80,5 +103,5 @@ func (s *SimpleServer) ReadBlockAt(pos world.BlockPos) (world.BlockID, error) {
 }
 
 func (s *SimpleServer) ReadChunkAt(pos world.ChunkPos) (world.ChunkData, error) {
-	return s.FetchChunk(pos)
+	return s.FetchOrCreateChunk(pos)
 }
