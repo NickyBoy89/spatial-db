@@ -14,8 +14,6 @@ import (
 const (
 	chunkWidth  = 15
 	chunkHeight = 5
-
-	borderPadding = 2
 )
 
 var (
@@ -51,8 +49,9 @@ type chunkViewerModel struct {
 }
 
 func (m *chunkViewerModel) updateShownChunks(newWidth, newHeight int) {
-	m.visibleChunkRows = newHeight / (chunkHeight + borderPadding)
-	m.visibleChunkCols = newWidth / (chunkWidth + borderPadding)
+	horiz, vert := missingChunkStyle.GetFrameSize()
+	m.visibleChunkRows = newHeight / (chunkHeight + vert)
+	m.visibleChunkCols = newWidth / (chunkWidth + horiz)
 }
 
 func (m chunkViewerModel) Init() tea.Cmd {
