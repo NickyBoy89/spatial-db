@@ -17,12 +17,13 @@ var (
 )
 
 type SimpleServer struct {
+	StorageDir string
 }
 
 // Filesystem operations
 
 func (s *SimpleServer) FetchOrCreateChunk(pos world.ChunkPos) (world.ChunkData, error) {
-	chunkFileName := filepath.Join(ChunkFileDirectory, pos.ToFileName())
+	chunkFileName := filepath.Join(s.StorageDir, pos.ToFileName())
 
 	var chunkData world.ChunkData
 
@@ -53,7 +54,7 @@ func (s *SimpleServer) FetchOrCreateChunk(pos world.ChunkPos) (world.ChunkData, 
 }
 
 func (s *SimpleServer) FetchChunk(pos world.ChunkPos) (world.ChunkData, error) {
-	chunkFileName := filepath.Join(ChunkFileDirectory, pos.ToFileName())
+	chunkFileName := filepath.Join(s.StorageDir, pos.ToFileName())
 
 	var chunkData world.ChunkData
 

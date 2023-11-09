@@ -2,6 +2,7 @@ package world
 
 import (
 	"fmt"
+	"math/rand"
 )
 
 const (
@@ -13,6 +14,14 @@ type BlockPos struct {
 	X int  `json:"x"`
 	Y uint `json:"y"`
 	Z int  `json:"z"`
+}
+
+func RandomBlockPosWithRange(maxRange float64) BlockPos {
+	return BlockPos{
+		X: int(rand.NormFloat64() * maxRange),
+		Y: uint(rand.NormFloat64() * maxRange),
+		Z: int(rand.NormFloat64() * maxRange),
+	}
 }
 
 func (b BlockPos) ToChunkPos() ChunkPos {

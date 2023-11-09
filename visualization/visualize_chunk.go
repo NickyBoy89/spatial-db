@@ -141,11 +141,9 @@ var VisualizeChunkCommand = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		// Initialize the server in the specified directory
-		storage.ChunkFileDirectory = args[0]
-
 		// Create a new server to read from those files
 		var chunkServer storage.SimpleServer
+		chunkServer.StorageDir = args[0]
 
 		prog := tea.NewProgram(initChunkViewer(&chunkServer), tea.WithAltScreen())
 
