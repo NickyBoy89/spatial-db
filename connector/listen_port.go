@@ -1,11 +1,13 @@
 package connector
 
 import (
-	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 
+	mcnet "github.com/Tnze/go-mc/net"
+	pk "github.com/Tnze/go-mc/net/packet"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
@@ -46,32 +48,61 @@ var ProxyPortCommand = &cobra.Command{
 	},
 }
 
-func handleConn(conn net.Conn) {
-	defer conn.Close()
-	log.Infof("Received connection from %v", conn.RemoteAddr())
+func handleConn(clientConn net.Conn) {
+	defer log.Info("Closed all connections")
+	defer clientConn.Close()
+	log.Infof("Received connection from %v", clientConn.RemoteAddr())
 	// Open a connection to the remote server
 	serverConn, err := net.Dial("tcp", fmt.Sprintf(":%d", outputPort))
 	if err != nil {
-		panic(err)
+		log.Errorf("Could not connect to remote server: %v", err)
+		return
 	}
 	defer serverConn.Close()
 
-	var sidecarServerDataStream bytes.Buffer
+	// Wrap the server's connection into a mc conn to read packets
+	wrappedServerConn := mcnet.WrapConn(serverConn)
+	defer wrappedServerConn.Close()
 
-	// Divert any data read from the server to be copied into the sidecar data stream
-	serverReader := io.TeeReader(serverConn, &sidecarServerDataStream)
+	// Writes to the client connection any data read from the server connection
+	wrappedServerConn.Reader = io.TeeReader(wrappedServerConn.Reader, clientConn)
 
-	go handleGameConnection(&sidecarServerDataStream)
-
-	// Start copying data from the server to the client
 	go func() {
-		if _, err := io.Copy(conn, serverReader); err != nil {
-			panic(err)
+		log.Info("Listening for packets")
+		var p pk.Packet
+		for {
+			if err := wrappedServerConn.ReadPacket(&p); err != nil {
+				if errors.Is(err, io.EOF) {
+					return
+				}
+				panic(err)
+			}
+
+			// log.Infof("Received packet with id %.2x", p.ID)
+
+			switch p.ID {
+			case 0x20:
+				panic("Incoming chunk")
+			// From here: https://wiki.vg/Protocol#Chunk_Data_and_Update_Light
+			case 0x25:
+				var (
+				// chunkX     pk.Int
+				// chunkZ     pk.Int
+				// heightmaps struct {
+				// 	MotionBlocking []int64       `nbt:"MOTION_BLOCKING"`
+				// 	WorldSurface   []pk.NBTField `nbt:"WORLD_SURFACE"`
+				// }
+				// heightmaps nbt.RawMessage
+				// chunkData pk.ByteArray
+				)
+				panic("Chunk upload called")
+			}
 		}
 	}()
 
-	// Copy data from the client to the server
-	if _, err := io.Copy(serverConn, conn); err != nil {
+	// Now, we need to copy the network data from the client to the server
+	log.Info("Copying data from the client to the server")
+	if _, err := io.Copy(wrappedServerConn, clientConn); err != nil {
 		panic(err)
 	}
 }
