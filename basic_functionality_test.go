@@ -1,19 +1,47 @@
 package main
 
 import (
+	"errors"
+	"io/fs"
 	"math/rand"
 	"os"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"git.nicholasnovak.io/nnovak/spatial-db/storage"
 	"git.nicholasnovak.io/nnovak/spatial-db/world"
 )
 
-func populateStorageDir(dir string, maxSpread float64, numPoints int) string {
+func populateStorageDir(
+	dirName string,
+	maxSpread float64,
+	numPoints int,
+	cleanup bool,
+) {
+	log.Debug("Generating new storage directory")
+
+	// Make sure that another directory is not already at that location
+	if _, err := os.Stat(dirName); err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			log.Debugf("Making new directory at %s", dirName)
+			if err := os.Mkdir(dirName, 0755); err != nil {
+				panic(err)
+			}
+		} else {
+			panic(err)
+		}
+	} else {
+		log.Debug("Directory already exists, skipping generation")
+		return
+	}
+
 	var server storage.SimpleServer
 
-	server.StorageDir = dir
-	defer os.RemoveAll(server.StorageDir)
+	server.StorageDir = dirName
+	if cleanup {
+		defer os.RemoveAll(server.StorageDir)
+	}
 
 	points := make([]world.BlockPos, numPoints)
 
@@ -32,8 +60,7 @@ func populateStorageDir(dir string, maxSpread float64, numPoints int) string {
 			panic(err)
 		}
 	}
-
-	return server.StorageDir
+	log.Info("Done generating")
 }
 
 // func BenchmarkInsertSomePoints(b *testing.B) {
