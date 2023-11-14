@@ -31,15 +31,6 @@ func (b BlockPos) ToChunkPos() ChunkPos {
 	}
 }
 
-type ChunkData struct {
-	Pos      ChunkPos         `json:"pos"`
-	Sections [16]ChunkSection `json:"sections"`
-}
-
-func (cd *ChunkData) SectionFor(pos BlockPos) *ChunkSection {
-	return &cd.Sections[pos.Y%16]
-}
-
 type ChunkPos struct {
 	X int `json:"x"`
 	Z int `json:"z"`

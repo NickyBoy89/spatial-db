@@ -20,6 +20,10 @@ type SimpleServer struct {
 	StorageDir string
 }
 
+func (s *SimpleServer) SetStorageRoot(path string) {
+	s.StorageDir = path
+}
+
 // Filesystem operations
 
 func (s *SimpleServer) FetchOrCreateChunk(pos world.ChunkPos) (world.ChunkData, error) {

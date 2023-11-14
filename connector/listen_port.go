@@ -75,7 +75,7 @@ func handleConn(clientConn net.Conn) {
 				if errors.Is(err, io.EOF) {
 					return
 				}
-				panic(err)
+				log.Errorf("Error reading packet from server: %v", err)
 			}
 
 			// log.Infof("Received packet with id %.2x", p.ID)
@@ -103,6 +103,6 @@ func handleConn(clientConn net.Conn) {
 	// Now, we need to copy the network data from the client to the server
 	log.Info("Copying data from the client to the server")
 	if _, err := io.Copy(wrappedServerConn, clientConn); err != nil {
-		panic(err)
+		log.Errorf("Error copying data to the server: %v", err)
 	}
 }

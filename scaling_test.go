@@ -17,6 +17,7 @@ var (
 	largeDenseDir  = "./lg-dense"
 )
 
+// Point densities
 const (
 	sparse = 1_000
 	dense  = 10_000
@@ -37,10 +38,11 @@ func init() {
 	}
 }
 
+// insertPointTemplate inserts a configurable variety of points into the server
 func insertPointTemplate(testDir string, b *testing.B) {
 	var server storage.SimpleServer
 
-	server.StorageDir = testDir
+	server.SetStorageRoot(testDir)
 
 	b.ResetTimer()
 
@@ -52,26 +54,69 @@ func insertPointTemplate(testDir string, b *testing.B) {
 	}
 }
 
-func BenchmarkSmallSparse(b *testing.B) {
+func fetchChunkTemplate(testDir string, b *testing.B) {
+	var server storage.SimpleServer
+
+	server.SetStorageRoot(testDir)
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		pos := world.RandomBlockPosWithRange(2048).ToChunkPos()
+		if _, err := server.ReadChunkAt(pos); err != nil {
+			b.Error(err)
+		}
+	}
+}
+
+// Insert blocks
+
+func BenchmarkInsertSmallSparse(b *testing.B) {
 	insertPointTemplate(smallSparseDir, b)
 }
 
-func BenchmarkMedSparse(b *testing.B) {
+func BenchmarkInsertMedSparse(b *testing.B) {
 	insertPointTemplate(medSparseDir, b)
 }
 
-func BenchmarkLgSparse(b *testing.B) {
+func BenchmarkInsertLgSparse(b *testing.B) {
 	insertPointTemplate(largeSparseDir, b)
 }
 
-func BenchmarkSmallDense(b *testing.B) {
+func BenchmarkInsertSmallDense(b *testing.B) {
 	insertPointTemplate(smallDenseDir, b)
 }
 
-func BenchmarkMedDense(b *testing.B) {
+func BenchmarkInsertMedDense(b *testing.B) {
 	insertPointTemplate(medDenseDir, b)
 }
 
-func BenchmarkLgDense(b *testing.B) {
+func BenchmarkInsertLgDense(b *testing.B) {
 	insertPointTemplate(largeDenseDir, b)
+}
+
+// Fetch chunks
+
+func BenchmarkFetchChunkSmallSparse(b *testing.B) {
+	fetchChunkTemplate(smallSparseDir, b)
+}
+
+func BenchmarkFetchChunkMedSparse(b *testing.B) {
+	fetchChunkTemplate(medSparseDir, b)
+}
+
+func BenchmarkFetchChunkLgSparse(b *testing.B) {
+	fetchChunkTemplate(largeSparseDir, b)
+}
+
+func BenchmarkFetchChunkSmallDense(b *testing.B) {
+	fetchChunkTemplate(smallDenseDir, b)
+}
+
+func BenchmarkFetchChunkMedDense(b *testing.B) {
+	fetchChunkTemplate(medDenseDir, b)
+}
+
+func BenchmarkFetchChunkLgDense(b *testing.B) {
+	fetchChunkTemplate(largeDenseDir, b)
 }
