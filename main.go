@@ -14,7 +14,15 @@ func main() {
 
 	rootCmd.AddCommand(visualization.VisualizeCommand)
 	rootCmd.AddCommand(connector.ProxyPortCommand)
-	rootCmd.AddCommand(loading.LoadRegionFileCommand)
+
+	loadCmd := &cobra.Command{
+		Use:   "load",
+		Short: "Loads save files into the database's format",
+	}
+
+	loadCmd.AddCommand(loading.LoadSaveDirCommand)
+
+	rootCmd.AddCommand(loadCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		panic(err)
