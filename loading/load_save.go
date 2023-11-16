@@ -58,8 +58,10 @@ var LoadSaveDirCommand = &cobra.Command{
 
 			// Save each chunk to a separate file
 			for _, chunk := range chunks {
+				chunkFilename := chunk.Pos.ToFileName()
+
 				outfile, err := os.OpenFile(
-					filepath.Join(saveOutputDir, chunk.Pos.ToFileName()),
+					filepath.Join(saveOutputDir, chunkFilename),
 					os.O_WRONLY|os.O_CREATE|os.O_APPEND,
 					0664,
 				)

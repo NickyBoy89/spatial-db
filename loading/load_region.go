@@ -1,6 +1,9 @@
 package loading
 
 import (
+	"strconv"
+	"strings"
+
 	"git.nicholasnovak.io/nnovak/spatial-db/world"
 	"github.com/Tnze/go-mc/save"
 	"github.com/Tnze/go-mc/save/region"
@@ -15,6 +18,17 @@ func LoadRegionFile(fileName string) ([]world.ChunkData, error) {
 		return nil, err
 	}
 	defer regionFile.Close()
+
+	// Parse the name of the region to find its position within the world
+	nameParts := strings.Split(fileName, ".")
+	regionX, err := strconv.Atoi(nameParts[1])
+	if err != nil {
+		return nil, err
+	}
+	regionY, err := strconv.Atoi(nameParts[2])
+	if err != nil {
+		return nil, err
+	}
 
 	// A region file is a 32x32 grid of chunks
 	chunks := []world.ChunkData{}
@@ -36,6 +50,9 @@ func LoadRegionFile(fileName string) ([]world.ChunkData, error) {
 				// Convert each chunk into the database's format
 				var chunkData world.ChunkData
 				chunkData.FromMCAChunk(chunk)
+
+				chunkData.Pos.X = regionX*32 + i
+				chunkData.Pos.Z = regionY*32 + j
 
 				chunks = append(chunks, chunkData)
 			}
