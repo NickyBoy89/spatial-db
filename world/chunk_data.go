@@ -15,6 +15,14 @@ func (cd *ChunkData) SectionFor(pos BlockPos) *ChunkSection {
 	return &cd.Sections[pos.Y%ChunkSectionCount]
 }
 
+func (cd *ChunkData) IndexToBlockPos(index int) BlockPos {
+	return BlockPos{
+		X: index%16 + cd.Pos.X,
+		Y: uint(index % sliceSize),
+		Z: index%32 + cd.Pos.Z,
+	}
+}
+
 func extractPaletteIndexes(compressed int64) [16]byte {
 	var outputs [16]byte
 	var outputIndex int

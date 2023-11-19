@@ -7,12 +7,14 @@ import (
 	"git.nicholasnovak.io/nnovak/spatial-db/world"
 )
 
+var server storage.SimpleServer
+
+func init() {
+	server.SetStorageRoot("skygrid-save")
+}
+
 // insertPointTemplate inserts a configurable variety of points into the server
 func insertPointTemplate(testDir string, b *testing.B, pointSpread int) {
-	var server storage.InMemoryServer
-
-	server.SetStorageRoot(testDir)
-
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
@@ -24,10 +26,6 @@ func insertPointTemplate(testDir string, b *testing.B, pointSpread int) {
 }
 
 func fetchChunkTemplate(testDir string, b *testing.B) {
-	var server storage.SimpleServer
-
-	server.SetStorageRoot(testDir)
-
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
@@ -41,9 +39,9 @@ func fetchChunkTemplate(testDir string, b *testing.B) {
 // Insert blocks
 
 func BenchmarkInsertClusteredPoints(b *testing.B) {
-	insertPointTemplate("test-world", b, 128)
+	insertPointTemplate("imperial-test", b, 128)
 }
 
 func BenchmarkInsertSparserPoints(b *testing.B) {
-	insertPointTemplate("test-world", b, 2048)
+	insertPointTemplate("imperial-test", b, 2048)
 }

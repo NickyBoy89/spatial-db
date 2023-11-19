@@ -1,6 +1,7 @@
 package loading
 
 import (
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -20,7 +21,7 @@ func LoadRegionFile(fileName string) ([]world.ChunkData, error) {
 	defer regionFile.Close()
 
 	// Parse the name of the region to find its position within the world
-	nameParts := strings.Split(fileName, ".")
+	nameParts := strings.Split(filepath.Base(fileName), ".")
 	regionX, err := strconv.Atoi(nameParts[1])
 	if err != nil {
 		return nil, err
