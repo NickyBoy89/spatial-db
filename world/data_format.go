@@ -16,6 +16,10 @@ type BlockPos struct {
 	Z int  `json:"z"`
 }
 
+func (b BlockPos) String() string {
+	return fmt.Sprintf("BlockPos { X: %v, Y: %v, Z: %v }", b.X, b.Y, b.Z)
+}
+
 func RandomBlockPosWithRange(maxRange float64) BlockPos {
 	return BlockPos{
 		X: int(rand.NormFloat64() * maxRange),
@@ -54,7 +58,7 @@ func rem_euclid(a, b int) int {
 	return (a%b + b) % b
 }
 
-func (cs *ChunkSection) IndexOfBlock(pos BlockPos) int {
+func IndexOfBlock(pos BlockPos) int {
 	baseX := rem_euclid(pos.X, 16)
 	baseY := rem_euclid(int(pos.Y), 16)
 	baseZ := rem_euclid(pos.Z, 16)
@@ -69,11 +73,11 @@ func (cs *ChunkSection) UpdateBlockAtIndex(index int, targetState BlockID) {
 }
 
 func (cs *ChunkSection) UpdateBlock(pos BlockPos, targetState BlockID) {
-	cs.BlockStates[cs.IndexOfBlock(pos)] = targetState
+	cs.BlockStates[IndexOfBlock(pos)] = targetState
 }
 
 func (cs *ChunkSection) FetchBlock(pos BlockPos) BlockID {
-	return cs.BlockStates[cs.IndexOfBlock(pos)]
+	return cs.BlockStates[IndexOfBlock(pos)]
 }
 
 type BlockID uint8

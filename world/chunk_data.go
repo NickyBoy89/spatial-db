@@ -16,10 +16,13 @@ func (cd *ChunkData) SectionFor(pos BlockPos) *ChunkSection {
 }
 
 func (cd *ChunkData) IndexToBlockPos(index int) BlockPos {
+	posX := index % 16
+	posZ := ((index - posX) % 256) / 16
+	posY := ((index - posZ) % 4096) / 256
 	return BlockPos{
-		X: index%16 + cd.Pos.X,
-		Y: uint(index % sliceSize),
-		Z: index%32 + cd.Pos.Z,
+		X: posX + cd.Pos.X,
+		Y: uint(posY),
+		Z: posZ + cd.Pos.Z,
 	}
 }
 
