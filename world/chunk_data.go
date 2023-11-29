@@ -20,9 +20,9 @@ func (cd *ChunkData) IndexToBlockPos(index int) BlockPos {
 	posZ := ((index - posX) % 256) / 16
 	posY := ((index - posZ) % 4096) / 256
 	return BlockPos{
-		X: posX + cd.Pos.X,
+		X: posX + (cd.Pos.X * 16),
 		Y: uint(posY),
-		Z: posZ + cd.Pos.Z,
+		Z: posZ + (cd.Pos.Z * 16),
 	}
 }
 
