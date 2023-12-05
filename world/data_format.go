@@ -86,37 +86,3 @@ const (
 	Empty BlockID = iota
 	Generic
 )
-
-func (b *BlockID) UnmarshalJSON(data []byte) error {
-	idName := string(data)
-
-	if len(idName) < 2 {
-		return fmt.Errorf("error decoding blockid, input was too short")
-	}
-
-	switch idName[1 : len(idName)-1] {
-	case "Empty":
-		*b = Empty
-	case "Generic":
-		*b = Generic
-	default:
-		return fmt.Errorf("unknown block id: %s", string(data))
-	}
-
-	return nil
-}
-
-func (b BlockID) MarshalJSON() ([]byte, error) {
-	var encoded []byte
-
-	switch b {
-	case Empty:
-		encoded = []byte("\"Empty\"")
-	case Generic:
-		encoded = []byte("\"Generic\"")
-	default:
-		return []byte{}, fmt.Errorf("could not turn block id %d into data", b)
-	}
-
-	return encoded, nil
-}
