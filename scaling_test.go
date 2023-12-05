@@ -2,13 +2,14 @@ package main
 
 import (
 	"errors"
+	"io"
 	"testing"
 
 	"git.nicholasnovak.io/nnovak/spatial-db/storage"
 	"git.nicholasnovak.io/nnovak/spatial-db/world"
 )
 
-var server storage.SimpleServer
+var server storage.InMemoryServer
 
 func init() {
 	server.SetStorageRoot("skygrid-save")
@@ -20,7 +21,7 @@ func readBlockTemplate(rootDir string, b *testing.B, pointSpread int) {
 	for i := 0; i < b.N; i++ {
 		pos := world.RandomBlockPosWithRange(float64(pointSpread))
 		if _, err := server.ReadBlockAt(pos); err != nil {
-			if errors.Is(err, storage.ChunkNotFoundError) {
+			if errors.Is(err, storage.ChunkNotFoundError) || errors.Is(err, io.EOF) {
 				continue
 			} else {
 				b.Error(err)
@@ -48,4 +49,8 @@ func BenchmarkReadClusteredPoints(b *testing.B) {
 
 func BenchmarkReadSparserPoints(b *testing.B) {
 	readBlockTemplate("skygrid-test", b, 2048)
+}
+
+func BenchmarkReadSparserPoints1(b *testing.B) {
+	readBlockTemplate("skygrid-test", b, 65536)
 }

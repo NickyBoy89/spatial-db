@@ -16,9 +16,13 @@ witchcraft-save:
 	mkdir witchcraft-save
 	./spatial-db load worldsave "saves/Witchcraft/region" --output "witchcraft-save"
 
+.PHONY: compile
+compile:
+	CC=clang go build .
+
 .PHONY: bench
-bench:
-	go test -bench . -benchtime=10s -count 10
+bench: compile
+	CC=clang go test -bench . -benchtime=2s -count 10
 
 .PHONY: clean
 clean:

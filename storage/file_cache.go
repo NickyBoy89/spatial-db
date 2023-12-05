@@ -3,6 +3,7 @@ package storage
 import (
 	"math/rand"
 	"os"
+	"time"
 )
 
 // A `FileCache` stores open file descriptors for all files that have been
@@ -12,6 +13,8 @@ type FileCache struct {
 	fileNames      map[string]int
 	indexesOfFiles map[int]string
 	files          []*os.File
+
+	randSource *rand.Rand
 }
 
 func NewFileCache(cacheSize int) FileCache {
@@ -21,6 +24,8 @@ func NewFileCache(cacheSize int) FileCache {
 	c.fileNames = make(map[string]int)
 	c.indexesOfFiles = make(map[int]string)
 	c.files = make([]*os.File, cacheSize)
+
+	c.randSource = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	return c
 }
@@ -36,8 +41,13 @@ func (fc *FileCache) FetchFile(fileName string) (*os.File, error) {
 
 	// The file was not in the cache, try and insert it
 
+	f, err := os.Open(fileName)
+	if err != nil {
+		return nil, err
+	}
+
 	// Random cache eviction
-	indexToRemove := rand.Intn(fc.cacheSize)
+	indexToRemove := fc.randSource.Intn(fc.cacheSize)
 
 	// Remove the old value
 	oldName, present := fc.indexesOfFiles[indexToRemove]
@@ -46,11 +56,6 @@ func (fc *FileCache) FetchFile(fileName string) (*os.File, error) {
 	if present {
 		delete(fc.fileNames, oldName)
 		delete(fc.indexesOfFiles, indexToRemove)
-	}
-
-	f, err := os.Open(fileName)
-	if err != nil {
-		return nil, err
 	}
 
 	// Insert the new value

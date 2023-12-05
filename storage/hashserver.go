@@ -69,7 +69,7 @@ func (hs *HashServer) ChangeBlockRange(
 }
 
 func (hs *HashServer) ReadBlockAt(pos world.BlockPos) (world.BlockID, error) {
-	panic("Unimplemented")
+	return hs.blocks[pos], nil
 }
 
 func (hs *HashServer) ReadChunkAt(pos world.ChunkPos) (world.ChunkData, error) {

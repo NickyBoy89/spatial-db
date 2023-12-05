@@ -18,10 +18,12 @@ var (
 
 type SimpleServer struct {
 	StorageDir string
+	cache      FileCache
 }
 
 func (s *SimpleServer) SetStorageRoot(path string) {
 	s.StorageDir = path
+	s.cache = NewFileCache(256)
 }
 
 // Filesystem operations
@@ -57,12 +59,13 @@ func (s *SimpleServer) FetchOrCreateChunk(pos world.ChunkPos) (world.ChunkData, 
 	return ReadChunkFromFile(chunkFile)
 }
 
+// `FetchChunk' fetches the chunk's data, given the chunk's position
 func (s *SimpleServer) FetchChunk(pos world.ChunkPos) (world.ChunkData, error) {
 	chunkFileName := filepath.Join(s.StorageDir, pos.ToFileName())
 
 	var chunkData world.ChunkData
 
-	chunkFile, err := os.Open(chunkFileName)
+	chunkFile, err := s.cache.FetchFile(chunkFileName)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return chunkData, ChunkNotFoundError
@@ -70,7 +73,6 @@ func (s *SimpleServer) FetchChunk(pos world.ChunkPos) (world.ChunkData, error) {
 			return chunkData, err
 		}
 	}
-	defer chunkFile.Close()
 
 	return ReadChunkFromFile(chunkFile)
 }
@@ -99,7 +101,7 @@ func (s *SimpleServer) ChangeBlockRange(
 }
 
 func (s *SimpleServer) ReadBlockAt(pos world.BlockPos) (world.BlockID, error) {
-	chunk, err := s.FetchOrCreateChunk(pos.ToChunkPos())
+	chunk, err := s.FetchChunk(pos.ToChunkPos())
 	if err != nil {
 		return world.Empty, err
 	}
