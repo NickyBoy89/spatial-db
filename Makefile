@@ -16,6 +16,10 @@ witchcraft-save:
 	mkdir witchcraft-save
 	./spatial-db load worldsave "saves/Witchcraft/region" --output "witchcraft-save"
 
+.PHONY: bench
+bench:
+	go test -bench . -benchtime=10s -count 10
+
 .PHONY: clean
 clean:
 	rm -r $(SAVES)
