@@ -1,4 +1,4 @@
-package storage
+package server
 
 import (
 	"encoding/json"
@@ -7,23 +7,20 @@ import (
 	"os"
 	"path/filepath"
 
+	"git.nicholasnovak.io/nnovak/spatial-db/storage"
 	"git.nicholasnovak.io/nnovak/spatial-db/world"
 )
 
 const fileCacheSize = 8
 
-var (
-	ChunkNotFoundError = errors.New("chunk was not found in storage")
-)
-
 type SimpleServer struct {
 	StorageDir string
-	cache      FileCache
+	cache      storage.FileCache
 }
 
 func (s *SimpleServer) SetStorageRoot(path string) {
 	s.StorageDir = path
-	s.cache = NewFileCache(256)
+	s.cache = storage.NewFileCache(256)
 }
 
 // Filesystem operations
@@ -56,7 +53,7 @@ func (s *SimpleServer) FetchOrCreateChunk(pos world.ChunkPos) (world.ChunkData, 
 	}
 	defer chunkFile.Close()
 
-	return ReadChunkFromFile(chunkFile)
+	return storage.ReadChunkFromFile(chunkFile)
 }
 
 // `FetchChunk' fetches the chunk's data, given the chunk's position
@@ -68,13 +65,13 @@ func (s *SimpleServer) FetchChunk(pos world.ChunkPos) (world.ChunkData, error) {
 	chunkFile, err := s.cache.FetchFile(chunkFileName)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			return chunkData, ChunkNotFoundError
+			return chunkData, storage.ChunkNotFoundError
 		} else {
 			return chunkData, err
 		}
 	}
 
-	return ReadChunkFromFile(chunkFile)
+	return storage.ReadChunkFromFile(chunkFile)
 }
 
 // Voxel server implementation

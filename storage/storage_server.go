@@ -1,6 +1,10 @@
 package storage
 
-import "git.nicholasnovak.io/nnovak/spatial-db/world"
+import (
+	"errors"
+
+	"git.nicholasnovak.io/nnovak/spatial-db/world"
+)
 
 type StorageServer interface {
 	// Individual operations
@@ -16,3 +20,7 @@ type StorageServer interface {
 	// Network-level operations
 	ReadChunkAt(pos world.ChunkPos) error
 }
+
+var (
+	ChunkNotFoundError = errors.New("chunk was not found in storage")
+)
