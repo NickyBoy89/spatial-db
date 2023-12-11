@@ -93,6 +93,7 @@ func (cd *ChunkData) FromMCAChunk(other save.Chunk) {
 		}
 
 		var currentSection ChunkSection
+		currentSection.Palette = NewSectionPalette()
 
 		paletteIndexes := []int{}
 		for _, compress := range section.BlockStates.Data {
