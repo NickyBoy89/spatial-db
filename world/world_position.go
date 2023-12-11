@@ -49,3 +49,14 @@ const (
 	Empty BlockID = iota
 	Generic
 )
+
+func (id BlockID) String() string {
+	switch id {
+	case Empty:
+		return "Empty"
+	case Generic:
+		return "Generic"
+	default:
+		panic(fmt.Sprintf("Unknown block id: %v", uint8(id)))
+	}
+}
