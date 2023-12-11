@@ -16,15 +16,17 @@ const (
 // `ChunkData` represents the contents of a "chunk", which is a column of voxels
 // in world space
 type ChunkData struct {
-	Pos      ChunkPos                        `json:"pos"`
+	// The position of the chunk, in world space
+	Pos ChunkPos `json:"pos"`
+	// The column of sections
 	Sections [ChunkSectionCount]ChunkSection `json:"sections"`
 }
 
 // `ChunkSection' is a fixed-size cube that stores the data in a chunk
 type ChunkSection struct {
-	// The count of full blocks in the chunk
-	BlockCount  uint                  `json:"block_count"`
-	BlockStates [16 * 16 * 16]BlockID `json:"block_states"`
+	// A look-up-table of each section index to its value
+	Palette     SectionPalette             `json:"palette"`
+	BlockStates [16 * 16 * 16]PaletteIndex `json:"block_states"`
 }
 
 func rem_euclid(a, b int) int {
@@ -39,18 +41,12 @@ func IndexOfBlock(pos BlockPos) int {
 	return (baseY * chunkSliceSize) + (baseZ * 16) + baseX
 }
 
-func (cs *ChunkSection) UpdateBlockAtIndex(index int, targetState BlockID) {
-	// TODO: Keep track of the block count
-
-	cs.BlockStates[index] = targetState
-}
-
 func (cs *ChunkSection) UpdateBlock(pos BlockPos, targetState BlockID) {
-	cs.BlockStates[IndexOfBlock(pos)] = targetState
+	cs.BlockStates[IndexOfBlock(pos)] = cs.Palette.IndexFor(targetState)
 }
 
 func (cs *ChunkSection) FetchBlock(pos BlockPos) BlockID {
-	return cs.BlockStates[IndexOfBlock(pos)]
+	return cs.Palette.State(cs.BlockStates[IndexOfBlock(pos)])
 }
 
 func (cd *ChunkData) SectionFor(pos BlockPos) *ChunkSection {
@@ -67,6 +63,8 @@ func (cd *ChunkData) IndexToBlockPos(index int) BlockPos {
 		Z: posZ + (cd.Pos.Z * 16),
 	}
 }
+
+// Conversion from Minecraft chunks
 
 func extractPaletteIndexes(compressed int64) [16]byte {
 	var outputs [16]byte
@@ -113,13 +111,12 @@ func (cd *ChunkData) FromMCAChunk(other save.Chunk) {
 			if section.BlockStates.Palette[paletteIndex].Name == "minecraft:air" {
 				state = Empty
 			} else {
-				cd.Sections[sectionIndex].BlockCount += 1
 				state = Generic
 			}
 
 			// TODO: Remove this workaround for larger bit sizes in palettes
 			if blockIndex < 4096 {
-				currentSection.BlockStates[blockIndex] = state
+				currentSection.BlockStates[blockIndex] = currentSection.Palette.IndexFor(state)
 			}
 		}
 

@@ -1,0 +1,26 @@
+goos: linux
+goarch: amd64
+pkg: git.nicholasnovak.io/nnovak/spatial-db
+cpu: 11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz
+BenchmarkInsertClusteredPoints-8   	 7030724	       294.0 ns/op	     139 B/op	       0 allocs/op
+BenchmarkInsertClusteredPoints-8   	 5987259	       198.1 ns/op	      10 B/op	       0 allocs/op
+BenchmarkInsertClusteredPoints-8   	 5793637	       484.0 ns/op	     337 B/op	       0 allocs/op
+BenchmarkInsertClusteredPoints-8   	 5644594	       207.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInsertClusteredPoints-8   	 5815582	       211.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInsertClusteredPoints-8   	 5618958	       211.7 ns/op	       2 B/op	       0 allocs/op
+BenchmarkInsertClusteredPoints-8   	 5603455	       215.2 ns/op	      10 B/op	       0 allocs/op
+BenchmarkInsertClusteredPoints-8   	 5454136	       223.0 ns/op	      13 B/op	       0 allocs/op
+BenchmarkInsertClusteredPoints-8   	 5391891	       694.1 ns/op	     718 B/op	       0 allocs/op
+BenchmarkInsertClusteredPoints-8   	 5574357	       228.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInsertSparserPoints-8     	 5355165	       218.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInsertSparserPoints-8     	 5385463	       221.0 ns/op	       1 B/op	       0 allocs/op
+BenchmarkInsertSparserPoints-8     	 5265614	       224.1 ns/op	       2 B/op	       0 allocs/op
+BenchmarkInsertSparserPoints-8     	 5269447	       229.2 ns/op	       7 B/op	       0 allocs/op
+BenchmarkInsertSparserPoints-8     	 5167845	       231.7 ns/op	      19 B/op	       0 allocs/op
+BenchmarkInsertSparserPoints-8     	 4997976	       240.3 ns/op	      23 B/op	       0 allocs/op
+BenchmarkInsertSparserPoints-8     	 4914524	       772.6 ns/op	    1584 B/op	       0 allocs/op
+BenchmarkInsertSparserPoints-8     	 1535679	       692.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInsertSparserPoints-8     	 1852569	       617.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInsertSparserPoints-8     	 2007783	       568.2 ns/op	       1 B/op	       0 allocs/op
+PASS
+ok  	git.nicholasnovak.io/nnovak/spatial-db	114.742s

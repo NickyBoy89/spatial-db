@@ -25,7 +25,7 @@ func (hs *HashServer) SetStorageRoot(path string) {
 		for _, section := range data.Sections {
 			for blockIndex, blockState := range section.BlockStates {
 				pos := data.IndexToBlockPos(blockIndex)
-				hs.blocks[pos] = blockState
+				hs.blocks[pos] = section.Palette.State(blockState)
 			}
 		}
 	}
