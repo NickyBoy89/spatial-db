@@ -3,6 +3,7 @@ package server
 import (
 	"git.nicholasnovak.io/nnovak/spatial-db/storage"
 	"git.nicholasnovak.io/nnovak/spatial-db/world"
+	log "github.com/sirupsen/logrus"
 )
 
 type HashServer struct {
@@ -17,8 +18,10 @@ func (hs *HashServer) SetStorageRoot(path string) {
 		panic(err)
 	}
 
-	for _, data := range chunks {
+	for chunkIndex, data := range chunks {
 		// Load in each data point from disk
+		log.Infof("Reading in chunk %d of %d", chunkIndex, len(chunks))
+
 		for _, section := range data.Sections {
 			for blockIndex, blockState := range section.BlockStates {
 				pos := data.IndexToBlockPos(blockIndex)

@@ -9,7 +9,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"git.nicholasnovak.io/nnovak/spatial-db/storage"
+	"git.nicholasnovak.io/nnovak/spatial-db/server"
 	"git.nicholasnovak.io/nnovak/spatial-db/world"
 )
 
@@ -36,7 +36,7 @@ func populateStorageDir(
 		return
 	}
 
-	var server storage.SimpleServer
+	var server server.SimpleServer
 
 	server.StorageDir = dirName
 	if cleanup {
