@@ -4,11 +4,53 @@ import (
 	"github.com/Tnze/go-mc/save"
 )
 
-const ChunkSectionCount = 16
+const (
+	// The number of sections per chunk. This determines the total height of the
+	// chunk
+	ChunkSectionCount = 16
 
+	// The number of blocks in a horizontal slice of a chunk
+	chunkSliceSize = 16 * 16
+)
+
+// `ChunkData` represents the contents of a "chunk", which is a column of voxels
+// in world space
 type ChunkData struct {
 	Pos      ChunkPos                        `json:"pos"`
 	Sections [ChunkSectionCount]ChunkSection `json:"sections"`
+}
+
+// `ChunkSection' is a fixed-size cube that stores the data in a chunk
+type ChunkSection struct {
+	// The count of full blocks in the chunk
+	BlockCount  uint                  `json:"block_count"`
+	BlockStates [16 * 16 * 16]BlockID `json:"block_states"`
+}
+
+func rem_euclid(a, b int) int {
+	return (a%b + b) % b
+}
+
+func IndexOfBlock(pos BlockPos) int {
+	baseX := rem_euclid(pos.X, 16)
+	baseY := rem_euclid(int(pos.Y), 16)
+	baseZ := rem_euclid(pos.Z, 16)
+
+	return (baseY * chunkSliceSize) + (baseZ * 16) + baseX
+}
+
+func (cs *ChunkSection) UpdateBlockAtIndex(index int, targetState BlockID) {
+	// TODO: Keep track of the block count
+
+	cs.BlockStates[index] = targetState
+}
+
+func (cs *ChunkSection) UpdateBlock(pos BlockPos, targetState BlockID) {
+	cs.BlockStates[IndexOfBlock(pos)] = targetState
+}
+
+func (cs *ChunkSection) FetchBlock(pos BlockPos) BlockID {
+	return cs.BlockStates[IndexOfBlock(pos)]
 }
 
 func (cd *ChunkData) SectionFor(pos BlockPos) *ChunkSection {
