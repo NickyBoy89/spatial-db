@@ -5,15 +5,12 @@ SAVES += witchcraft-save
 all: $(SAVES)
 
 imperial-save: compile
-	mkdir imperial-save
 	./spatial-db load worldsave "saves/Imperialcity v14.1/region" --output "imperial-save"
 
 skygrid-save: compile
-	mkdir skygrid-save
 	./spatial-db load worldsave "saves/SkyGrid/region" --output "skygrid-save"
 
 witchcraft-save: compile
-	mkdir witchcraft-save
 	./spatial-db load worldsave "saves/Witchcraft/region" --output "witchcraft-save"
 
 .PHONY: compile

@@ -1,11 +1,11 @@
 package loading
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"git.nicholasnovak.io/nnovak/spatial-db/storage"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
@@ -31,6 +31,13 @@ var LoadSaveDirCommand = &cobra.Command{
 		}
 
 		log.Infof("Loading save directory of %s", args[0])
+
+		u, err := storage.CreateUnityFile(saveOutputDir)
+		if err != nil {
+			return err
+		}
+		defer u.Close()
+		defer u.WriteMetadataFile(saveOutputDir + ".metadata")
 
 		for regionIndex, regionFile := range regionFiles {
 			if regionFile.IsDir() {
@@ -58,22 +65,9 @@ var LoadSaveDirCommand = &cobra.Command{
 
 			// Save each chunk to a separate file
 			for _, chunk := range chunks {
-				chunkFilename := chunk.Pos.ToFileName()
-
-				outfile, err := os.OpenFile(
-					filepath.Join(saveOutputDir, chunkFilename),
-					os.O_WRONLY|os.O_CREATE|os.O_APPEND,
-					0664,
-				)
-				if err != nil {
+				if err := u.WriteChunk(chunk); err != nil {
 					return err
 				}
-
-				if err := json.NewEncoder(outfile).Encode(chunk); err != nil {
-					return err
-				}
-
-				outfile.Close()
 			}
 		}
 
