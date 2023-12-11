@@ -1,12 +1,7 @@
 package server
 
 import (
-	"encoding/json"
-	"os"
-	"path/filepath"
-
-	log "github.com/sirupsen/logrus"
-
+	"git.nicholasnovak.io/nnovak/spatial-db/storage"
 	"git.nicholasnovak.io/nnovak/spatial-db/world"
 )
 
@@ -17,26 +12,12 @@ type HashServer struct {
 func (hs *HashServer) SetStorageRoot(path string) {
 	hs.blocks = make(map[world.BlockPos]world.BlockID)
 
-	chunkFiles, err := os.ReadDir(path)
+	chunks, err := storage.ReadParallelFromDirectory(path)
 	if err != nil {
 		panic(err)
 	}
 
-	for chunkIndex, chunkFile := range chunkFiles {
-		var data world.ChunkData
-
-		log.Infof("Reading in chunk %d of %d", chunkIndex, len(chunkFiles))
-
-		f, err := os.Open(filepath.Join(path, chunkFile.Name()))
-		if err != nil {
-			panic(err)
-		}
-
-		// Read each file from disk
-		if err := json.NewDecoder(f).Decode(&data); err != nil {
-			panic(err)
-		}
-
+	for _, data := range chunks {
 		// Load in each data point from disk
 		for _, section := range data.Sections {
 			for blockIndex, blockState := range section.BlockStates {
@@ -44,8 +25,6 @@ func (hs *HashServer) SetStorageRoot(path string) {
 				hs.blocks[pos] = blockState
 			}
 		}
-
-		f.Close()
 	}
 }
 

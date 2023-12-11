@@ -5,7 +5,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"git.nicholasnovak.io/nnovak/spatial-db/storage"
 	"git.nicholasnovak.io/nnovak/spatial-db/world"
@@ -19,41 +18,12 @@ type InMemoryServer struct {
 func (s *InMemoryServer) SetStorageRoot(path string) {
 	s.StorageDir = path
 
-	chunkFiles, err := os.ReadDir(s.StorageDir)
+	chunks, err := storage.ReadParallelFromDirectory(s.StorageDir)
 	if err != nil {
 		panic(err)
 	}
 
-	s.Chunks = make(map[world.ChunkPos]world.ChunkData)
-
-	validChunkFiles := []fs.DirEntry{}
-	for _, chunkFile := range chunkFiles {
-		if chunkFile.IsDir() || !strings.HasSuffix(chunkFile.Name(), ".chunk") {
-			continue
-		}
-		validChunkFiles = append(validChunkFiles, chunkFile)
-	}
-
-	chunks := make([]world.ChunkData, len(validChunkFiles))
-
-	for chunkIndex, chunkFile := range validChunkFiles {
-		go func(index int, cf fs.DirEntry) {
-			file, err := os.Open(filepath.Join(s.StorageDir, cf.Name()))
-			if err != nil {
-				panic(err)
-			}
-
-			chunkData, err := storage.ReadChunkFromFile(file)
-			if err != nil {
-				panic(err)
-			}
-
-			file.Close()
-
-			chunks[index] = chunkData
-		}(chunkIndex, chunkFile)
-	}
-
+	s.Chunks = make(map[world.ChunkPos]world.ChunkData, len(chunks))
 	for _, chunkData := range chunks {
 		s.Chunks[chunkData.Pos] = chunkData
 	}
