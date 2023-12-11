@@ -21,8 +21,8 @@ type UnityFile struct {
 }
 
 type fileMetadata struct {
-	startOffset int
-	fileSize    int
+	StartOffset int `json:"start_offset"`
+	FileSize    int `json:"file_size"`
 }
 
 func CreateUnityFile(fileName string) (UnityFile, error) {
@@ -62,8 +62,8 @@ func (u *UnityFile) WriteChunk(data world.ChunkData) error {
 
 	// Update the metadata with the new file
 	u.metadata[data.Pos] = fileMetadata{
-		startOffset: u.fileSize,
-		fileSize:    encodedSize,
+		StartOffset: u.fileSize,
+		FileSize:    encodedSize,
 	}
 	u.fileSize += encodedSize
 
@@ -100,9 +100,9 @@ func (u *UnityFile) ReadMetadataFile(fileName string) error {
 func (u UnityFile) ReadChunk(pos world.ChunkPos) (world.ChunkData, error) {
 	m := u.metadata[pos]
 
-	u.fd.Seek(0, m.startOffset)
+	u.fd.Seek(0, m.StartOffset)
 
-	fileReader := io.LimitReader(u.fd, int64(m.fileSize))
+	fileReader := io.LimitReader(u.fd, int64(m.FileSize))
 
 	var data world.ChunkData
 	if err := json.NewDecoder(fileReader).Decode(&data); err != nil {
@@ -110,4 +110,8 @@ func (u UnityFile) ReadChunk(pos world.ChunkPos) (world.ChunkData, error) {
 	}
 
 	return data, nil
+}
+
+func (u *UnityFile) Close() error {
+	return u.fd.Close()
 }
