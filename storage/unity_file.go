@@ -3,6 +3,7 @@ package storage
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"os"
 
 	"git.nicholasnovak.io/nnovak/spatial-db/world"
@@ -16,7 +17,12 @@ type UnityFile struct {
 	fd       *os.File
 	fileSize int
 	// metadata maps the position of a chunk to its start index within the file
-	metadata map[world.ChunkPos]int
+	metadata map[world.ChunkPos]fileMetadata
+}
+
+type fileMetadata struct {
+	startOffset int
+	fileSize    int
 }
 
 func CreateUnityFile(fileName string) (UnityFile, error) {
@@ -28,7 +34,7 @@ func CreateUnityFile(fileName string) (UnityFile, error) {
 	}
 
 	u.fd = f
-	u.metadata = make(map[world.ChunkPos]int)
+	u.metadata = make(map[world.ChunkPos]fileMetadata)
 
 	return u, nil
 }
@@ -55,7 +61,10 @@ func (u *UnityFile) WriteChunk(data world.ChunkData) error {
 	}
 
 	// Update the metadata with the new file
-	u.metadata[data.Pos] = u.fileSize
+	u.metadata[data.Pos] = fileMetadata{
+		startOffset: u.fileSize,
+		fileSize:    encodedSize,
+	}
 	u.fileSize += encodedSize
 
 	return nil
@@ -88,6 +97,17 @@ func (u *UnityFile) ReadMetadataFile(fileName string) error {
 	return nil
 }
 
-func (u UnityFile) ReadChunk() world.ChunkData {
-	return world.ChunkData{}
+func (u UnityFile) ReadChunk(pos world.ChunkPos) (world.ChunkData, error) {
+	m := u.metadata[pos]
+
+	u.fd.Seek(0, m.startOffset)
+
+	fileReader := io.LimitReader(u.fd, int64(m.fileSize))
+
+	var data world.ChunkData
+	if err := json.NewDecoder(fileReader).Decode(&data); err != nil {
+		return world.ChunkData{}, err
+	}
+
+	return data, nil
 }

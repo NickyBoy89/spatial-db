@@ -3,6 +3,8 @@ package world
 import (
 	"fmt"
 	"math/rand"
+	"strconv"
+	"strings"
 )
 
 type BlockPos struct {
@@ -36,7 +38,25 @@ type ChunkPos struct {
 }
 
 func (cp ChunkPos) MarshalText() ([]byte, error) {
-	return []byte(fmt.Sprintf("%d %d", cp.Z, cp.Z)), nil
+	return []byte(fmt.Sprintf("%d %d", cp.X, cp.Z)), nil
+}
+
+func (cp *ChunkPos) UnmarshalText(text []byte) error {
+	words := strings.Split(string(text), " ")
+	x, err := strconv.Atoi(words[0])
+	if err != nil {
+		return err
+	}
+
+	z, err := strconv.Atoi(words[1])
+	if err != nil {
+		return err
+	}
+
+	cp.X = x
+	cp.Z = z
+
+	return nil
 }
 
 func (cp ChunkPos) ToFileName() string {
