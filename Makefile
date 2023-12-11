@@ -22,7 +22,7 @@ compile:
 
 .PHONY: bench
 bench: compile
-	CC=clang go test -bench . -benchtime=2s -count 10
+	CC=clang GOEXPERIMENT=loopvar go test -bench .
 
 .PHONY: clean
 clean:
