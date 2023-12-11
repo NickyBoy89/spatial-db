@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"git.nicholasnovak.io/nnovak/spatial-db/storage"
 	"git.nicholasnovak.io/nnovak/spatial-db/world"
 )
 
@@ -25,22 +26,35 @@ func (s *InMemoryServer) SetStorageRoot(path string) {
 
 	s.Chunks = make(map[world.ChunkPos]world.ChunkData)
 
+	validChunkFiles := []fs.DirEntry{}
 	for _, chunkFile := range chunkFiles {
 		if chunkFile.IsDir() || !strings.HasSuffix(chunkFile.Name(), ".chunk") {
 			continue
 		}
-		file, err := os.Open(filepath.Join(s.StorageDir, chunkFile.Name()))
-		if err != nil {
-			panic(err)
-		}
+		validChunkFiles = append(validChunkFiles, chunkFile)
+	}
 
-		chunkData, err := ReadChunkFromFile(file)
-		if err != nil {
-			panic(err)
-		}
+	chunks := make([]world.ChunkData, len(validChunkFiles))
 
-		file.Close()
+	for chunkIndex, chunkFile := range validChunkFiles {
+		go func(index int, cf fs.DirEntry) {
+			file, err := os.Open(filepath.Join(s.StorageDir, cf.Name()))
+			if err != nil {
+				panic(err)
+			}
 
+			chunkData, err := storage.ReadChunkFromFile(file)
+			if err != nil {
+				panic(err)
+			}
+
+			file.Close()
+
+			chunks[index] = chunkData
+		}(chunkIndex, chunkFile)
+	}
+
+	for _, chunkData := range chunks {
 		s.Chunks[chunkData.Pos] = chunkData
 	}
 }
@@ -57,14 +71,14 @@ func (s *InMemoryServer) FetchChunk(pos world.ChunkPos) (world.ChunkData, error)
 	chunkFile, err := os.Open(chunkFileName)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			return chunkData, ChunkNotFoundError
+			return chunkData, storage.ChunkNotFoundError
 		} else {
 			return chunkData, err
 		}
 	}
 	defer chunkFile.Close()
 
-	return ReadChunkFromFile(chunkFile)
+	return storage.ReadChunkFromFile(chunkFile)
 }
 
 // Voxel server implementation
