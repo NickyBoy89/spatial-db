@@ -35,6 +35,10 @@ type ChunkPos struct {
 	Z int `json:"z"`
 }
 
+func (cp ChunkPos) MarshalText() ([]byte, error) {
+	return []byte(fmt.Sprintf("%d %d", cp.Z, cp.Z)), nil
+}
+
 func (cp ChunkPos) ToFileName() string {
 	return fmt.Sprintf("p.%d.%d.chunk", cp.X, cp.Z)
 }
