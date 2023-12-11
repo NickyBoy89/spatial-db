@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 
+	"git.nicholasnovak.io/nnovak/spatial-db/server"
 	"git.nicholasnovak.io/nnovak/spatial-db/storage"
 	"git.nicholasnovak.io/nnovak/spatial-db/world"
 	tea "github.com/charmbracelet/bubbletea"
@@ -40,7 +41,7 @@ var (
 )
 
 type chunkViewerModel struct {
-	chunkServer *storage.SimpleServer
+	chunkServer *server.SimpleServer
 
 	visibleChunkRows int
 	visibleChunkCols int
@@ -127,7 +128,7 @@ func (m chunkViewerModel) View() string {
 	return s.String()
 }
 
-func initChunkViewer(chunkServer *storage.SimpleServer) chunkViewerModel {
+func initChunkViewer(chunkServer *server.SimpleServer) chunkViewerModel {
 	var model chunkViewerModel
 
 	model.chunkServer = chunkServer
@@ -142,7 +143,7 @@ var VisualizeChunkCommand = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		// Create a new server to read from those files
-		var chunkServer storage.SimpleServer
+		var chunkServer server.SimpleServer
 		chunkServer.StorageDir = args[0]
 
 		prog := tea.NewProgram(initChunkViewer(&chunkServer), tea.WithAltScreen())
