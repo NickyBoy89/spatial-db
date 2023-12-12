@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"reflect"
@@ -69,6 +70,7 @@ func TestWriteMultipleFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error creating temporary directory: %v", err)
 	}
+	fmt.Println(tempDir)
 	defer os.RemoveAll(tempDir)
 
 	u, err := CreateUnityFile(path.Join(tempDir, "test-unity"))
@@ -116,6 +118,63 @@ func TestWriteMultipleFiles(t *testing.T) {
 		// Compare the chunks directly
 		if !reflect.DeepEqual(data, readChunk) {
 			t.Fatalf("Chunks differed, sent %v, received %v", data, readChunk)
+		}
+	}
+}
+
+func TestReadAllChunks(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "unity")
+	if err != nil {
+		t.Fatalf("Error creating temporary directory: %v", err)
+	}
+	fmt.Println(tempDir)
+	defer os.RemoveAll(tempDir)
+
+	u, err := CreateUnityFile(path.Join(tempDir, "test-unity"))
+	if err != nil {
+		t.Fatalf("Error creating unity file: %v", err)
+	}
+
+	var (
+		chunk1 world.ChunkData
+		chunk2 world.ChunkData
+		chunk3 world.ChunkData
+	)
+	chunk1.Pos = world.ChunkPos{
+		X: 0,
+		Z: 0,
+	}
+	chunk1.Sections[0].BlockStates[0] = 2
+	chunk2.Sections[0].BlockStates[0] = 3
+	chunk2.Pos = world.ChunkPos{
+		X: 1,
+		Z: 0,
+	}
+	chunk3.Sections[0].BlockStates[0] = 4
+	chunk3.Pos = world.ChunkPos{
+		X: 2,
+		Z: 0,
+	}
+
+	chunks := []world.ChunkData{chunk1, chunk2, chunk3}
+
+	// Write all chunks
+	for _, data := range chunks {
+		if err := u.WriteChunk(data); err != nil {
+			t.Fatalf("Error writing chunk: %v", err)
+		}
+	}
+
+	t.Log(chunks)
+
+	readChunks, err := u.ReadAllChunks()
+	if err != nil {
+		t.Fatalf("Error reading chunks: %v", err)
+	}
+
+	for index, chunk := range readChunks {
+		if !reflect.DeepEqual(chunk, chunks[index]) {
+			t.Fatalf("Chunks were not equal")
 		}
 	}
 }

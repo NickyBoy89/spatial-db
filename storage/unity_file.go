@@ -39,6 +39,23 @@ func CreateUnityFile(fileName string) (UnityFile, error) {
 	return u, nil
 }
 
+func OpenUnityFile(fileName, metadataName string) (UnityFile, error) {
+	var u UnityFile
+
+	// Read the file
+	f, err := os.Open(fileName)
+	if err != nil {
+		return u, err
+	}
+	u.fd = f
+
+	if err := u.ReadMetadataFile(metadataName); err != nil {
+		return u, err
+	}
+
+	return u, nil
+}
+
 func (u UnityFile) Size() int {
 	return u.fileSize
 }
@@ -54,7 +71,7 @@ func (u *UnityFile) WriteChunk(data world.ChunkData) error {
 	encodedSize := encoded.Len()
 
 	// Go to the end of the file
-	u.fd.Seek(0, u.fileSize)
+	u.fd.Seek(int64(u.fileSize), io.SeekStart)
 	// Write the encoded contents to the file
 	if _, err := u.fd.Write(encoded.Bytes()); err != nil {
 		return err
@@ -100,7 +117,7 @@ func (u *UnityFile) ReadMetadataFile(fileName string) error {
 func (u UnityFile) ReadChunk(pos world.ChunkPos) (world.ChunkData, error) {
 	m := u.metadata[pos]
 
-	u.fd.Seek(0, m.StartOffset)
+	u.fd.Seek(int64(m.StartOffset), io.SeekStart)
 
 	fileReader := io.LimitReader(u.fd, int64(m.FileSize))
 
@@ -110,6 +127,20 @@ func (u UnityFile) ReadChunk(pos world.ChunkPos) (world.ChunkData, error) {
 	}
 
 	return data, nil
+}
+
+func (u UnityFile) ReadAllChunks() ([]world.ChunkData, error) {
+	chunks := []world.ChunkData{}
+
+	for pos := range u.metadata {
+		chunk, err := u.ReadChunk(pos)
+		if err != nil {
+			return nil, err
+		}
+		chunks = append(chunks, chunk)
+	}
+
+	return chunks, nil
 }
 
 func (u *UnityFile) Close() error {
