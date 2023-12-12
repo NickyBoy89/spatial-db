@@ -14,13 +14,18 @@ import (
 const fileCacheSize = 8
 
 type SimpleServer struct {
-	StorageDir string
-	cache      storage.FileCache
+	StorageDir     string
+	storageBackend storage.UnityFile
 }
 
 func (s *SimpleServer) SetStorageRoot(path string) {
 	s.StorageDir = path
-	s.cache = storage.NewFileCache(256)
+
+	var err error
+	s.storageBackend, err = storage.OpenUnityFile(path, path+".metadata")
+	if err != nil {
+		panic(err)
+	}
 }
 
 // Filesystem operations
@@ -58,11 +63,7 @@ func (s *SimpleServer) FetchOrCreateChunk(pos world.ChunkPos) (world.ChunkData, 
 
 // `FetchChunk' fetches the chunk's data, given the chunk's position
 func (s *SimpleServer) FetchChunk(pos world.ChunkPos) (world.ChunkData, error) {
-	chunkFileName := filepath.Join(s.StorageDir, pos.ToFileName())
-
-	var chunkData world.ChunkData
-
-	chunkFile, err := s.cache.FetchFile(chunkFileName)
+	chunkData, err := s.storageBackend.ReadChunk(pos)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return chunkData, storage.ChunkNotFoundError
@@ -71,7 +72,7 @@ func (s *SimpleServer) FetchChunk(pos world.ChunkPos) (world.ChunkData, error) {
 		}
 	}
 
-	return storage.ReadChunkFromFile(chunkFile)
+	return chunkData, nil
 }
 
 // Voxel server implementation

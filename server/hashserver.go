@@ -13,7 +13,13 @@ type HashServer struct {
 func (hs *HashServer) SetStorageRoot(path string) {
 	hs.blocks = make(map[world.BlockPos]world.BlockID)
 
-	chunks, err := storage.ReadParallelFromDirectory(path)
+	u, err := storage.OpenUnityFile(path, path+".metadata")
+	if err != nil {
+		panic(err)
+	}
+	defer u.Close()
+
+	chunks, err := u.ReadAllChunks()
 	if err != nil {
 		panic(err)
 	}

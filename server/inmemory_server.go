@@ -18,7 +18,13 @@ type InMemoryServer struct {
 func (s *InMemoryServer) SetStorageRoot(path string) {
 	s.StorageDir = path
 
-	chunks, err := storage.ReadParallelFromDirectory(s.StorageDir)
+	u, err := storage.OpenUnityFile(s.StorageDir, s.StorageDir+".metadata")
+	if err != nil {
+		panic(err)
+	}
+	defer u.Close()
+
+	chunks, err := u.ReadAllChunks()
 	if err != nil {
 		panic(err)
 	}
