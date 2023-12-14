@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"io/fs"
 	"os"
 
 	"git.nicholasnovak.io/nnovak/spatial-db/world"
@@ -115,7 +116,10 @@ func (u *UnityFile) ReadMetadataFile(fileName string) error {
 }
 
 func (u UnityFile) ReadChunk(pos world.ChunkPos) (world.ChunkData, error) {
-	m := u.metadata[pos]
+	m, contains := u.metadata[pos]
+	if !contains {
+		return world.ChunkData{}, fs.ErrNotExist
+	}
 
 	u.fd.Seek(int64(m.StartOffset), io.SeekStart)
 

@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"io"
 	"testing"
 
 	"git.nicholasnovak.io/nnovak/spatial-db/storage"
@@ -19,7 +18,7 @@ func readBlockTemplate(
 	for i := 0; i < b.N; i++ {
 		pos := world.RandomBlockPosWithRange(float64(pointSpread))
 		if _, err := storageServer.ReadBlockAt(pos); err != nil {
-			if errors.Is(err, storage.ChunkNotFoundError) || errors.Is(err, io.EOF) {
+			if errors.Is(err, storage.ChunkNotFoundError) {
 				continue
 			} else {
 				b.Error(err)
