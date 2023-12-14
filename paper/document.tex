@@ -27,7 +27,7 @@ or three-dimensional pixels.
 % Applications of voxels
 A voxel\cite{enwiki:1186283262} represents a single point or cube in a
 three-dimensional grid, at a variable size. This feature allows them to
-approximately model many three-dimensional structures, in order to reduce the
+approximately model many three-dimensional structures, and to reduce the
 computational complexity in analyzing the shape, which has led to many
 data-related use cases outside of computer science. For example, to model the
 inner workings of the brain, Neuroscientists track oxygen concentration through
@@ -37,7 +37,7 @@ reflections for visual effects\cite{museth2013vdb}. The output of MRI scans in
 hospitals are very high-resolution voxel grids. Most recently, machine learning
 models are being trained on the LIDAR data from self-driving
 cars\cite{li2020deep} in order to better process their environments. However,
-voxels are not often thought of as a way to store three-dimensional shapes, and
+voxels are not often thought of as a way to permanently store three-dimensional shapes, and
 existing research focuses mainly on efficiently representing and processing
 shapes. My approach models this problem of voxel storage and representation, and
 turns it into a problem of database design.
@@ -205,9 +205,7 @@ advantage of this speedup. In VDB\cite{museth2013vdb} Museth demonstrates that
 by modeling a sparse voxel grid in different resolutions, a computer cluster can
 efficiently approximate a physical structures such as a cloud, in order to
 calculate expensive lighting operations.
-
-\subsection{Parallel Processing on Voxel Databases}
-
+% Parallel processing on voxels
 Williams\cite{williams1992voxel} expands upon the uses of a voxel database to
 model graph and mesh-based problems. Taking advantage of the parallelism in the
 grid, many problems can be reframed in the representation of voxels, and solve
@@ -216,7 +214,7 @@ voxel is stored in shared memory, making this process only viable to solve
 problems that can be modeled on one machine, and are far more computationally
 expensive, rather than data-intensive.
 
-\subsection{Large Voxel Data Set Processing}
+\subsection{Storing Large Voxel Data Sets}
 
 Another approach to the problem of storing voxel data is the distributed
 approach in Gorte et. al. \cite{gorte2023analysis}. Since memory is limited
@@ -228,6 +226,28 @@ data structure called an octree, which allows the user to change the resolution
 of the data that they are working on. In the paper, Gorte acknowledges the need
 to split large datasets up into smaller regions, which is similar to the concept
 of ``chunks'' in my implementation.
+
+\subsection{Chunk Systems in Other Games}
+
+The decision to choose chunks to represent game data has many justifications. As
+\cite{gorte2023analysis} mentions, an infinite grid of voxels needs to be broken
+up in a way where applications can store data in an efficient way, and many
+other games converge on this same implementation. Another voxel-based game,
+Veloren\cite{https://veloren.net} uses the same chunk-based system, although
+differs in its storage method. The game switches between several different
+storage implementations in each chunk, depending on how dense or sparse the voxel
+data within the chunk is. For sparser data, the game stores block information in
+a simple key-value hash map. As the number of voxels increase, the game further
+breaks this information up, and creates several smaller sections within the
+chunk. Finally, for very dense data, the game stores a compressed version using
+Zlib compression\cite{veloren32}. This gives many options for data compression
+in my database, but also shows how the database can be adapted to store sparser
+structures more efficiently if the focus of the project ever needs to change.
+Since this game is not based on Minecraft, but an independent project named cube
+world, the game comes up with a similar data structure, and shows the
+performance considerations for using such a structure. The benchmarks that they
+show suggest about an order-of-magnitude improvement over using a key-value
+store.
 
 \subsection{Previous Special-Purpose Databases}
 
@@ -242,11 +262,14 @@ and replicate these in real-time.
 
 \section{Methods}
 
-Almost every part of the database was designed so that most operations could be
-done in constant time.
+\subsection{The Interface for the Database}
 
-The database provides a simple interface to read and write data, consisting of
-the following:
+For developers to interact with the database, the database is implemented as a
+library, and the database provides a simple application programming interface to
+read and write data, consisting of the following operations. The performance
+considerations for each of these operations can be found in the methods section
+below.
+
 \begin{itemize}
   \item Read a single block
   \item Write a single block
@@ -254,34 +277,44 @@ the following:
   \item Read a pre-defined ``chunk'' of blocks
 \end{itemize}
 
+\subsection{Reading and Writing a Single Voxel}
 
-The process of fetching the data for a single point in the world starts at that
-point's $x, y$ and $z$ location. The world is infinite in size on the horizontal
-$x$ and $z$ axes, but limited in the vertical $y$ axis. In my database, the
-world is composed of an infinite grid of ``chunks'', or columns that are a fixed
-16 x 16 blocks in the $x$ and $z$ axes, but 256 blocks in the vertical $y$ axis.
+The process of updating the data for a single point in the world starts with the
+voxel's position. Because the world is infinite on the horizontal $x$ and $z$
+axes, this is implemented by a system of ``chunks'', which are fixed-size 16x16
+columns of voxels, 256 voxels high. The size of these chunks are chosen so that
+they are large enough to be efficiently cached, and many operations can occur
+within the same chunk, but not too large to the point where the hundred or so
+chunks sent to the user upon joining the world cause a network slowdown. Given a
+point's $x$ and $z$ positions, the chunk that that voxel belongs to can be found
+with a fast modulus operation, in constant time.
 
-Once you know a point's location, you can find with a modulus what chunk the
-point is located within. From there, the database only needs to retrieve the
-data for the chunk stored at that location.
+To fetch the data for that chunk, the database needs to read that data from
+disk. The database stores this information in combined files that I call ``unity
+files'' (shown in figure \ref{fig:unity}), which consist of a single file on disk, but with the encoded data for
+each chunk stored as a start index and size, so that the \verb|seek| syscall can
+be used to efficiently query this data, while only keeping one file open. This
+scheme was used over the previous system of storing chunk files separately,
+because the filesystem had a hard time searching through the hundreds of
+thousands of chunks in larger worlds. This start position and size are stored in
+an auxillary hash map that stores a mapping of every chunk's position to its
+metadata within the unity file. This structure uses a minimal amount of memory,
+and also allows for a file to be fetched from disk in a constant amount of time
+and disk reads.
 
-Initial implementations for my database focused on tree-based approaches for
-finding the files for chunks, but with their complexity and non-constant
-complexity, I decided to store each chunk separately. However, with worlds with
-chunk counts in the hundreds of thousands, the filesystem implementations had
-issues with searching through so many files, which led to performance problems.
-Finally, I settled on merging all the chunk data into one file, and use the
-filesystem's \verb|seek| syscall to lookup the offset for the correct chunk. A
-simple hash table was then used to store each chunk's location with its offset
-in the file, which keeps the memory cost low, even with chunk counts in the
-millions. This allows for constant-time searches for the chunk's data.
+\begin{figure}
+  \centering
+  \includegraphics[width=8cm]{unity-file.drawio.png}
+  \caption{The Layout of a Unity File}
+  \label{fig:unity}
+\end{figure}
 
-Once a chunk is retrieved from disk, the format of the chunk is broken down into
-smaller cubic slices of the chunk, called ``sections'' each section is a
-16x16x16 cubic area that keeps an index for every chunk. The point's $y$
-position tells the database what section the point is in, and a simple formula
-is done to convert the remaining $x$ and $z$ axes into an index within the
-section.
+Each chunk is further divided into sections, in this case each chunk consists of
+16 stacked 16x16x16 cubes of voxels, which results in a total of 4096 block
+states per section. Using the voxel's $y$ position, the section for a block can
+be found with another modulus. Once this is found, a perfect hash function is
+used to map the voxel's position to an array index within the section. Again,
+both of these steps are done in constant time respectively.
 
 Every section additionally stores a look-up-table, that stores a mapping of a
 \textit{palette index} to the state of a block. When the value for the point is
@@ -289,8 +322,8 @@ retrieved from the section, the value returned is not the block's state, but
 simply an index into this palette. The palette lookup is done in constant time,
 and when a new block is added into the section that needs an additional state in
 the palette, this value is added in constant time as well. The existence of this
-palette supports the efficient operation of another part of the database, which
-is the ability to change large portions of blocks in the world.
+palette supports the efficient operation changing large portions of blocks in
+the world.
 
 Once the value of the point is found in the palette, the value can be returned
 to the user. A visual diagram of this process can be found in figure
@@ -407,28 +440,29 @@ chunks, so that chunk data could be retrieved without decoding the entire chunk.
 However, this would require a much more constrained data layout, and limit the
 implementation of different voxels.
 
-Additionally, compression 
+Additionally, compression would also reduce the amount of data sent from the
+disk to the application.
 
 \section{Ethical Considerations}
 
 \subsection{Considerations of Computing Resources}
 
-Since databases are at the core part of most complex systems, they are often
-built to be run on hardware that the normal consumer can afford
+Since a database is at the core part of most software systems, it is important
+that the database is designed to work on a wide variety of computers, in order
+to ensure all parties are able to take advantage of the improvements. I
+designed my database to run on entry-level commodity hardware, as well as
+alongside existing application programs that can require far more resources.
+Additionally, by focusing on disk storage, which is far cheaper than equivalent
+capacities of memory, this further allows researchers or individuals to run
+large datasets on a single machine.
+
+My system targets far less memory usage than existing commercial applications
 \footnote{\url{https://docs.oracle.com/en/database/oracle/oracle-database/12.2/ntdbi/oracle-database-minimum-hardware-requirements.html}}
 \footnote{\url{https://wiki.lustre.org/Lustre_Server_Requirements_Guidelines}}.
+In the design of my application I had to take advantage of as much of the
+computing hardware as possible, but make sure that the approachability and
+accessibility for the application does not decrease as as result.
 
-The large hardware requirements of these databases come from the environments
-where they are implemented, and at many of these companies, the ability to
-keep buying faster hardware allows the company to work on other things that are
-more important. However, what this does to the player is effectively prices them
-out of the game that they would be already playing, especially since the
-database would also have to run alongside the existing Java application of
-Minecraft, which quickly exhaust system memory.
-
-In the design of my server I have to prioritize both performance to take
-advantage of the existing hardware, but make sure that the accessibility for
-the application does not decrease as a result.
 
 \subsection{Considerations of Complexity}
 Another factor to consider in the implementation of my database is how complex
@@ -436,22 +470,20 @@ the existing systems are. Some of the most popular SQL databases, PostgreSQL and
 MySQL have 1.4 and 4.4 million lines of code respectively
 \footnote{\url{https://news.ycombinator.com/item?id=24813239}}.
 
-With so much complexity going on, this significantly decreases the overall
-knowledge of the system, as well as the individual user who has to debug their
-game. Most of this is from the large amount of query logic that handles caching
-and speeding up certain queries, so knowing more about the specific problem that
-I am trying to solve removes this process from having to be done.
-
-Especially since most of the people in the Minecraft community are volunteers in
-the open-source community, debugging this large of an application would be out of
-scope for enjoying a game, and likely lead to it being replaced with something
-more simple. The reliability characteristics are also less than what are
-required for Minecraft, since they are being compared against a single-threaded
-Java program which has been tested to do the correct thing.
+Because these systems are so complex, this decreases the number of people who
+can effectively work with these systems and maintain them, effectively limiting
+this role to larger companies that can afford teams of people to solve these
+problems for them. By not focusing on the significant complexity that comes with
+caching logic, and keeping a simple implementation for the server, I allow more
+companies and developers to use this database for their own needs, and expand
+with them. In addition, many decisions were made to help in the debugging
+process, including the choice of JSON serialization for the chunk data, which
+allows users to read the contents of files easier, and recover potentially
+corrupted data.
 
 \subsection{Considerations in Security}
 
-Since these databases are very complex, there is also the risk that having a
+Since databases are very complex, there is also the risk that having a
 server exposed over the internet through the Minecraft game server might leave
 it exposed to attacks. While this is a large issue, an even more important
 implication is the ability to configure the database correctly. Since these
@@ -461,37 +493,31 @@ breaches\footnote{\url{https://www.zdnet.com/article/hacker-ransoms-23k-mongodb-
 that involve a single server, even at larger companies that have dedicated teams
 that involve a data breach.
 
-My plan to mitigate this risk is to implement the database in a memory-safe
-programming language, which should remove the risk class of memory-unsafety
+I mitigate this risk by implementing the database in a memory-safe
+programming language, Go, which should remove the risk class of memory-unsafety
 bugs, which account for around 70\% of all bugs in the Chromium browser
 engine\footnote{\url{https://www.chromium.org/Home/chromium-security/memory-safety/}},
 which is entirely written in non-memory safe C++.
 
-And if the database information is ever able to be leaked through the Minecraft
-protocol, the attacker would have access to the full data, because I am planning
-to store it unencrypted for performance reasons, and rely on the encryption of
-the Minecraft client. And, the data involved does not involve personally
-identifying information, so the usefulness of the data would be close to
-nothing.
-
-But, perhaps the most important security risk is if an attacker is able to
-access the database directly and bypass all the isolation in the Minecraft
-protocol, in order to wipe or corrupt the data for malicious reasons. This would
-likely lead to the Minecraft server being unable to be played, and degrade the
-experience of the players. It is my plan to take advantage of the limitations of
-the types of Minecraft items to provide resilience and easy backups to the
-system, because of the purpose-built nature of the system
-\footnote{\url{https://twitter.com/eatonphil/status/1568247643788267521?s=20}}.
+However, there is the possibility that information stored in the database is
+exposed, whether the database not secured, or exposed via an application error.
+With this, my database follows the previous threat model of many other
+databases, and leaves the security up to the user implementing the application.
+Implementing features such as encryption would provide some additional layer of
+security, but would also likely decrease performance and increase complexity,
+which are also harmful to security in their own ways. Ultimately, I rely on a
+setting of defaults that doesn't many any assumptions about the security of the
+system.
 
 \subsection{Considerations in Fairness}
 
 In the implementation of databases, it can often be beneficial to make certain
 operations faster, at the expense of others that are not done as often. For
-instance, if I notice that players often pull items in and out of their systems
-often, but almost never search through the list of items, I can take advantage
-of this to speed up the database for the most common operations. However, this
-can be problematic if the things that I choose to sacrifice affect a certain
-group of users.
+instance, if I notice that researchers often write more to the database, and
+adjust the application accordingly, I can take advantage of this assumption to
+speed up the database for the most common operations. However, this can be
+problematic if the things that I choose to sacrifice affect a certain group of
+users.
 
 This tradeoff between speed and reliability occurs so often in Computer Science 
 and is described in terms of percentiles. For instance, if we notice that some
@@ -501,15 +527,9 @@ Similarly, if an event only occurs 1\% of the time, we can say it occurs in the
 like this is make is written about by Google \cite{dean2013tail}, who have to make every
 decision like this at their scale.
 
-My plan is to not have any tradeoffs that affect the normal gameplay of the
-server, and keep it within the 50ms timeframe that the Minecraft has allocated
-to itself. Apart from this, one of the main goals of the project is to give
-consistent performance, so any further decisions will be made around the
-existing implementation of the Minecraft server.
-
-%https://www.embedded.com/implementing-a-new-real-time-scheduling-policy-for-linux-part-1/
-%https://www.kernel.org/doc/html/latest/scheduler/sched-design-CFS.html
-%https://helix979.github.io/jkoo/post/os-scheduler/
+My database plans to keep a consistent set of gaurantees in regards to the
+complexity of the basic operations, and provide constant-time operations for
+most of these operations.
 
 \subsection{Considerations in Accessibility}
 
@@ -518,24 +538,9 @@ require a certain type of computer. Requiring a certain operating system or a
 more powerful computer would limit access to many of the people that were
 playing the game before.
 
-However, by basing the goal of the project on improving the performance of the
-already existing implementation, any improvements would result in more people
-being able to play than before. Also, by designing the system for normal
-hardware and in a cross-platform way, this does not limit the people that are
-able to access the improvements.
-
-
-\subsection{Considerations in the Concentration of Power}
-
-With any improvements to performance to servers in Minecraft, this would allow
-many of the larger hosting companies, who rent servers monthly to individual
-people, to drive down their hosting costs, and allow them to have larger returns
-over the smaller providers. However, since this market is so competitive between
-companies, because of how easy it is to set up a company, and the options
-between companies aren't very different, I would expect any improvement to be
-quickly disappear into the competitive market, and benefit everyone equally.
-
-\section{Future Work, and Conclusion}
+However, with the previous performance goals, as well as an implementation in a
+portable language, the program is available for as many systems as the Go
+compiler supports.
 
 \printbibliography
 
