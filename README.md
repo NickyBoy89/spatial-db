@@ -38,6 +38,12 @@ func main() {
 }
 ```
 
+# Using the CLI
+
+If the project is built from source using the build instructions, a statically compiled binary is generated. This binary has several commands that are helpful for debugging purposes.
+
+* `spatial-db load worldsave` allows the server to convert pre-existing world saves to a format SpatialDB can use.
+
 # Replicating the Database Results
 
 1. Build the project from source, using the build instructions
