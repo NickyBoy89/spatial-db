@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"git.nicholasnovak.io/nnovak/spatial-db/world"
+	"github.com/NickyBoy89/spatial-db/world"
 	"github.com/Tnze/go-mc/save"
 	"github.com/Tnze/go-mc/save/region"
 )

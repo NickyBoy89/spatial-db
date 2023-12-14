@@ -9,8 +9,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"git.nicholasnovak.io/nnovak/spatial-db/server"
-	"git.nicholasnovak.io/nnovak/spatial-db/world"
+	"github.com/NickyBoy89/spatial-db/server"
+	"github.com/NickyBoy89/spatial-db/world"
 )
 
 func populateStorageDir(

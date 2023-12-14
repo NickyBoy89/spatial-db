@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"git.nicholasnovak.io/nnovak/spatial-db/world"
+	"github.com/NickyBoy89/spatial-db/world"
 )
 
 func ReadChunkFromFile(chunkFile *os.File) (world.ChunkData, error) {

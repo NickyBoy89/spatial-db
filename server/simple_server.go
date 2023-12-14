@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"git.nicholasnovak.io/nnovak/spatial-db/storage"
-	"git.nicholasnovak.io/nnovak/spatial-db/world"
+	"github.com/NickyBoy89/spatial-db/storage"
+	"github.com/NickyBoy89/spatial-db/world"
 )
 
 const fileCacheSize = 8

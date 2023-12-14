@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"git.nicholasnovak.io/nnovak/spatial-db/world"
+	"github.com/NickyBoy89/spatial-db/world"
 )
 
 func TestCreateUnityFile(t *testing.T) {

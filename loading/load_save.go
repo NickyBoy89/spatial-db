@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"git.nicholasnovak.io/nnovak/spatial-db/storage"
+	"github.com/NickyBoy89/spatial-db/storage"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"

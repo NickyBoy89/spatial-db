@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"git.nicholasnovak.io/nnovak/spatial-db/server"
+	"github.com/NickyBoy89/spatial-db/server"
 )
 
 var disk server.SimpleServer

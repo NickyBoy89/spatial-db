@@ -4,9 +4,9 @@ import (
 	"errors"
 	"strings"
 
-	"git.nicholasnovak.io/nnovak/spatial-db/server"
-	"git.nicholasnovak.io/nnovak/spatial-db/storage"
-	"git.nicholasnovak.io/nnovak/spatial-db/world"
+	"github.com/NickyBoy89/spatial-db/server"
+	"github.com/NickyBoy89/spatial-db/storage"
+	"github.com/NickyBoy89/spatial-db/world"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"

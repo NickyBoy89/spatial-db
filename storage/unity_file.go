@@ -7,7 +7,7 @@ import (
 	"io/fs"
 	"os"
 
-	"git.nicholasnovak.io/nnovak/spatial-db/world"
+	"github.com/NickyBoy89/spatial-db/world"
 )
 
 // A `UnityFile` is a collection of chunks, stored as a single file on disk

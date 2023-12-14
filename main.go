@@ -1,9 +1,9 @@
 package main
 
 import (
-	"git.nicholasnovak.io/nnovak/spatial-db/connector"
-	"git.nicholasnovak.io/nnovak/spatial-db/loading"
-	"git.nicholasnovak.io/nnovak/spatial-db/visualization"
+	"github.com/NickyBoy89/spatial-db/connector"
+	"github.com/NickyBoy89/spatial-db/loading"
+	"github.com/NickyBoy89/spatial-db/visualization"
 	"github.com/spf13/cobra"
 )
 
