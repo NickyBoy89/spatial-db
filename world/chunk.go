@@ -49,6 +49,12 @@ func (cs *ChunkSection) FetchBlock(pos BlockPos) BlockID {
 	return cs.Palette.State(cs.BlockStates[IndexOfBlock(pos)])
 }
 
+func (cd *ChunkSection) FillSection(state BlockID) {
+	for _, index := range cd.Palette.Indexes() {
+		cd.Palette.ReplaceIndex(index, state)
+	}
+}
+
 func (cd *ChunkData) SectionFor(pos BlockPos) *ChunkSection {
 	return &cd.Sections[pos.Y%ChunkSectionCount]
 }

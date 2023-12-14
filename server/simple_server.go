@@ -3,10 +3,12 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"image"
 	"io/fs"
 	"os"
 	"path/filepath"
 
+	"git.nicholasnovak.io/nnovak/spatial-db/world"
 	"github.com/NickyBoy89/spatial-db/storage"
 	"github.com/NickyBoy89/spatial-db/world"
 )
@@ -91,11 +93,140 @@ func (s *SimpleServer) ChangeBlock(
 	return nil
 }
 
+func Abs[T int](x T) T {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+func Max[T int](x, y T) T {
+	if x > y {
+		return x
+	}
+	return y
+}
+
+func Min[T int](x, y T) T {
+	if x < y {
+		return x
+	}
+	return y
+}
+
+func RoundToNearest16[T int](x T) T {
+	for x%16 != 0 {
+		if x < 0 {
+			x -= 1
+		} else {
+			x += 1
+		}
+	}
+	return x
+}
+
+func PointsInRectHoriz(r image.Rectangle, y uint) []world.BlockPos {
+	pts := make([]world.BlockPos, r.Dx()*r.Dy())
+	ptIndex := 0
+
+	for x := r.Min.X; x < r.Dx(); x++ {
+		for z := r.Min.Y; z < r.Dy(); z++ {
+			pts[ptIndex] = world.BlockPos{X: x, Y: y, Z: z}
+			ptIndex++
+		}
+	}
+
+	return pts
+}
+
+func CommonPoints(r1, r2 image.Rectangle) []image.Point {
+	pts := []image.Point{}
+
+	for x := r1.Min.X; x < r1.Dx(); x++ {
+		for z := r1.Min.Y; z < r1.Dy(); z++ {
+			testPoint := image.Point{X: x, y: z}
+			if testPoint.X > r2.Min.X && testPoint.X < r2.Max.X && testPoint.Y > r2.Min.Y && testPoint.Y < r2.Max.Y {
+				pts = append(pts, testPoint)
+			}
+		}
+	}
+
+	return pts
+}
+
 func (s *SimpleServer) ChangeBlockRange(
 	targetState world.BlockID,
 	start, end world.BlockPos,
 ) error {
-	panic("ChangeBlockRange is unimplemented")
+	maxx, minx := Max(end.X, start.X), Min(end.X, start.X)
+	maxz, minz := Max(end.Z, start.Z), Min(end.Z, start.Z)
+
+	// Create a 2d rectangle looking down at the world
+	worldSlice := image.Rectangle{
+		Min: image.Point{X: minx, Y: minz},
+		Max: image.Point{X: maxx, Y: maxz},
+	}
+
+	chunkMinx, chunkMaxx := RoundToNearest16(minx), RoundToNearest16(maxx)
+	chunkMinz, chunkMaxz := RoundToNearest16(minz), RoundToNearest16(maxz)
+
+	// Get a list of all the chunks that could intersect
+	canditateChunks := []image.Rectangle{}
+	for xpos := chunkMinx; xpos < chunkMaxx; xpos += 16 {
+		for zpos := chunkMinz; zpos < chunkMaxz; zpos += 16 {
+			canditateChunks = append(canditateChunks, image.Rectangle{
+				Min: image.Point{X: xpos, Y: zpos},
+				Max: image.Point{X: xpos + 16, Y: zpos + 16},
+			})
+		}
+	}
+
+	completeOverlaps := []image.Rectangle{}
+	for _, chunkBounds := range canditateChunks {
+		if chunkBounds.In(worldSlice) {
+			completeOverlaps = append(completeOverlaps, chunkBounds)
+		}
+	}
+
+	partialOverlaps := []image.Rectangle{}
+	for _, chunkBounds := range canditateChunks {
+		// Remove chunks that completely overlap
+		if chunkBounds.In(worldSlice) {
+			continue
+		}
+
+		if chunkBounds.Overlaps(worldSlice) {
+			partialOverlaps = append(partialOverlaps, chunkBounds)
+		}
+	}
+
+	// Completely fill chunks that overlap completely
+	for _, complete := range completeOverlaps {
+		chunk, err := s.FetchChunk(world.ChunkPos{X: complete.Min.X, Z: complete.Min.Y})
+		if err != nil {
+			return err
+		}
+
+		for _, section := range chunk.Sections {
+			section.FillSection(targetState)
+		}
+	}
+
+	// Overwrite chunks that partially overlap
+	for _, partial := range partialOverlaps {
+		chunk, err := s.FetchChunk(world.ChunkPos{X: partial.Min.X, Z: partial.Min.Y})
+		if err != nil {
+			return err
+		}
+
+		// Loop through the changed points, and overwrite them
+		for _, point := range CommonPoints(partial, worldSlice) {
+			pos := world.BlockPos{X: point.X, Z: point.Y}
+			chunk.SectionFor(pos).UpdateBlock(pos, targetState)
+		}
+	}
+
+	return nil
 }
 
 func (s *SimpleServer) ReadBlockAt(pos world.BlockPos) (world.BlockID, error) {

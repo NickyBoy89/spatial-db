@@ -83,4 +83,15 @@ func (p *SectionPalette) ReplaceIndex(index PaletteIndex, state BlockID) {
 	p.ids[index] = state
 }
 
+// `Indexes` returns a list of all the palette indexes that are in the palette
+func (p SectionPalette) Indexes() []PaletteIndex {
+	inds := []PaletteIndex{}
+
+	for ind := range p.ids {
+		inds = append(inds, ind)
+	}
+
+	return inds
+}
+
 type PaletteIndex byte
