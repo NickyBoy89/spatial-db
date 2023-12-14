@@ -24,3 +24,4 @@ bench: compile
 .PHONY: clean
 clean:
 	rm -r $(SAVES)
+	rm *.metadata
