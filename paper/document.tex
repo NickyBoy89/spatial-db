@@ -42,6 +42,15 @@ existing research focuses mainly on efficiently representing and processing
 shapes. My approach models this problem of voxel storage and representation, and
 turns it into a problem of database design.
 
+Existing research into these fields rely on fast key-value databases, which
+enabled them to be very fast, doesn't allow researchers to conduct analysis on
+larger datasets, or requires the use of clusters of computers. My project stores
+this data on commodity hard drives or solid state disks using a custom-designed
+data structure, which allows my database to remain fast enough to handle large
+amount of operations reliably, and allow efficient general-purpose storage.
+
+\section{Technical Background}
+
 \subsection{Using Minecraft as a Model for a Database}
 
 % The problems with Minecraft
@@ -50,7 +59,8 @@ game that is played in a world entirely composed of cubic voxels, where the
 player has complete freedom to manipulate the world by building, destroying, or
 exploring any part of it. I am focusing this database on the requirements of
 Minecraft because the game involves some additional challenges that traditional
-databases do not consider. Primarily, the world of Minecraft is infinite in the
+databases do not consider, and would improved in performance and reliability by
+taking them into account. Primarily, the world of Minecraft is infinite in the
 horizontal $x$ and $z$ axes, but fixed in the $y$ axis, which limits the amount
 of information that can be stored by the database at once. The world also
 contains a denser voxel grid than in many other applications, meaning that far
@@ -73,8 +83,6 @@ large, remembering any previous operations will often not be helpful for the
 system's performance. Minecraft also provides a good benchmark for the database,
 because the unpredictability of players stresses the system's ability to return
 results in a variety of settings.
-
-\section{Technical Background}
 
 \subsection{What is a database?}
 When I refer to the concept of a database, I am referencing a program that sits
@@ -103,8 +111,8 @@ popularized by frameworks such as Ruby on Rails and Django, where the model was
 most often modeled by structures within the database. This framework allowed
 software developers to not have to worry about inner workings of the database,
 and focus on writing business logic. This is how many start-ups were built, such
-as GitHub \cite{githubSingleSQL}, who recently moved off its single SQL database
-after 13 years, citing performance issues.
+as the open-source code repository GitHub \cite{githubSingleSQL}, who recently
+moved off its single SQL database after 13 years, citing performance issues.
 
 % Challenges with working with SQL: Performance
 Using a single SQL-speaking database can be a significant advantage development
@@ -128,11 +136,11 @@ tricky to reach.''} of code, 2.9 million lines
 \footnote{https://www.sqlite.org/testing.html} respectively.
 
 % Why are databases inefficient?
-Why are databases so complex? Most of the reason for the complexity is that
-because these database systems so general-purpose, they cannot assume anything
-about the data stored in them. For the database, finding an efficient plan to
-answer each query is a known NP-hard problem\cite{chatterji2002complexity}, and
-to keep itself fast, the database must construct this plan with a complex set of
+Most of the reason for the complexity of a database is that because these
+database systems so general-purpose, they cannot assume anything about the data
+stored in them. For the database, finding an efficient plan to answer each query
+is a known NP-hard problem\cite{chatterji2002complexity}, and to keep itself
+fast, the database must construct this plan with a complex set of
 approximations, based on the assumptions that it can make, which leads to
 ever-evolving complexity.
 
@@ -195,6 +203,20 @@ a speed advantage of several orders of magnitude\cite{latencyKnow}.
 
 \section{Prior Work}
 
+\subsection{Storage of Voxels on General-Purpose Databases}
+
+Most of the existing storage methods for point-cloud data use extensions to
+ordinary SQL databases. One of these applications is named pgpointcloud, and
+stores the locations of many points in SQL tables\cite{cura2017scalable}. This
+allows for off-the-shelf solutions that teams of software engineers have used in
+the past, but can cause some performance concerns. This paper also cites the
+weaknesses of using on-disk formats to store points, because in a relational
+database, points are very weakly connected, and thus cannot be easily accessed
+in parallel. With column-oriented databases, this does allow for points to
+easily be accesses and processed, but does not take advantage of the voxel
+structure, and focuses on the manipulation of points, which it can do very well
+for not being specialized to do so.
+
 \subsection{Voxels for Efficient Computation}
 
 Most existing literature on the topic of using voxels to store shapes focuses on
@@ -214,7 +236,7 @@ voxel is stored in shared memory, making this process only viable to solve
 problems that can be modeled on one machine, and are far more computationally
 expensive, rather than data-intensive.
 
-\subsection{Storing Large Voxel Data Sets}
+\subsection{Storing Large Voxel Data Sets in Memory}
 
 Another approach to the problem of storing voxel data is the distributed
 approach in Gorte et. al. \cite{gorte2023analysis}. Since memory is limited
