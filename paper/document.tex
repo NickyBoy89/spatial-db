@@ -299,6 +299,26 @@ below.
   \item Read a pre-defined ``chunk'' of blocks
 \end{itemize}
 
+\subsection{The Chunk Data Structure}
+
+Because the grid of voxels in my database is infinite, it is necessary to break
+this infinite grid up into fixed size sections. However, storage could also be
+done with a structure such as a range tree\cite{enwiki:1175117303}, which could
+allow the database to store shapes of infinite size efficiently. This would
+additionally allow the database to perform native run-length encoding on the
+data stored, which would further reduce the storage footprint, at the cost of
+some additional speed in retrieving points. However, the time complexity of this
+data structure depends logarithmically on the number of ranges that the world
+contains, which in an infinite world, could potentially be in the millions. In
+addition to this, it is not entirely clear how a range tree could be scaled to
+the three dimensions necessary, from its starting point of one dimension. This
+would likely lead to worse performance, as well as significant complexity in the
+storage scheme, where another data structure could be better.
+
+This storage scheme let to the creation of the ``chunk'' structure, which is
+designed to efficiently flatten the three-dimensional voxels into an array of
+bytes on the computer, with all operations done in constant time.
+
 \subsection{Reading and Writing a Single Voxel}
 
 The process of updating the data for a single point in the world starts with the
@@ -383,22 +403,17 @@ my database, and the database should be handle this operation in the same amount
 of time, regardless of the size of the world. Both my implementation and the
 simpler key-value store meet this criteria.
 
+Another common operation in most voxel databases is the ability to read points
+that are neighboring another point. This is important because many voxel shapes
+approximate cubic shapes \cite{gorte2023analysis}, and in Minecraft, players are
+constantly affecting voxels that are nearer to each other.
+
 \subsection{Changing Regions of Voxels}
 
 Changing regions of voxels should be able to be done in linear time. This is
 because resetting or changing a region of voxels is important while drawing
 shapes of various resolutions. Lower resolution shapes are less precise, and
 thus are able to be written faster.
-
-\subsection{Memory Requirements}
-
-The memory requirement is set quite low, at 256MB, in order to require the
-database to store most of its data on disk, and limit its memory usage to
-important caching features. This limitation was chosen for larger datasets that
-don't fit within memory on a single machine, because memory is much more
-expensive than disk storage, and would limit the analysis to smaller voxel grids.
-
-\subsection{Reading Regions of Voxels}
 
 The ability to retrieve large shapes from the database is important, because in
 order to export a shape, another operation must be present to efficiently do
@@ -410,12 +425,39 @@ support many more players at once, by not sending every individual block to each
 client. This requirement is not met by the key-value database, but is reached by
 my implementation, by sending the stored chunks on disk.
 
-\subsection{Reading Neighboring Blocks}
+\subsection{Memory Requirements}
 
-The last common operation in most voxel databases is the ability to read points
-that are neighboring another point. This is important because many voxel shapes
-approximate cubic shapes \cite{gorte2023analysis}, and in Minecraft, players are
-constantly affecting voxels that are nearer to each other.
+The memory requirement is set quite low, at 256MB, in order to require the
+database to store most of its data on disk, and limit its memory usage to
+important caching features. This limitation was chosen for larger datasets that
+don't fit within memory on a single machine, because memory is much more
+expensive than disk storage, and would limit the analysis to smaller voxel grids.
+
+\subsection{Performance Requirements}
+
+In my database, performance is not an explicit target of the database, because
+the scaling of reads and writes on disk is a much more important problem,
+especially since many points in a dataset aren't updated many times per second.
+Since voxels are able to be separated out and operated on in parallel, there are
+many additional methods to target the performance of the database in the future,
+with the guarantees of the current database remaining.
+
+
+\subsection{Multi-Dimensional Storage}
+
+Many other voxel databases also offer the ability to store more additional
+information per voxel, in the form of additional dimensions on the data. With
+the current chunk system, it is likely that with some additional complexity
+added to the storage system, this could be adapted to store points such as that,
+but because most of the use-cases are for modeling complex objects that exist
+physically, the current operations are sufficient for the target use case. In
+key-value databases, storing additional information per voxel is also much
+easier, since SpatialDB stores voxels in a fixed-size database, so each voxel
+must be the same size. Even though this limits the expressiveness of the data,
+additional work could be done to store this data outside of the chunk, and only
+store a pointer to that data within the voxel's state. This would potentially
+allow for more complex voxel structures, where some voxels hold far more data
+than others.
 
 \section{Results and Discussion}
 
@@ -464,6 +506,14 @@ implementation of different voxels.
 
 Additionally, compression would also reduce the amount of data sent from the
 disk to the application.
+
+In any case, I present that the in-memory representation of the database shows
+what the theoretical scaling for the data could be, even though far more
+optimization could be done. In the case of Minecraft, this is done by only
+loading in a small subset of chunks at a time into memory, which allows for disk
+reads to be minimized. This is not feasible in the more analytical workloads for
+the database however, and work needs to be done in order to bring the cost of
+reading from disk down.
 
 \section{Ethical Considerations}
 
