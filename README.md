@@ -22,7 +22,7 @@ package main
 
 import (
     "github.com/NickyBoy89/spatial-db/server"
-	"github.com/NickyBoy89/spatial-db/world"
+    "github.com/NickyBoy89/spatial-db/world"
 )
 
 func main() {
